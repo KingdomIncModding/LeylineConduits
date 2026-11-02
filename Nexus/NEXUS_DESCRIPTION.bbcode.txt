@@ -1,0 +1,52 @@
+[b]Leyline Conduits[/b]
+Link distant machines with small enchanted conduits. Give an Input and an Output the same leyline name to move items across your kingdom, including between workshop tabs.
+
+[b]Features[/b]
+[list]
+[*]Small 64 x 64 tiles, roughly the size of a one-cell sticker.
+[*]One pipe connection per conduit: use its gear to choose Input or Output.
+[*]Named channels connect matching conduits across all workshop tabs in the current kingdom.
+[*]Set Icon opens a searchable, paginated picker using the game's sticker icons. Rune restores the default.
+[*]Hover to see the conduit mode, leyline name and status.
+[*]Multiple Outputs share an Input's items in round-robin order, skipping disconnected, occupied or incompatible destinations.
+[*]Each conduit holds one waiting item. Transfers preserve the original item, including equipment and adventurer data.
+[*]Modes, channel names, icons, pipes and waiting items persist in saves. Copies keep settings without duplicating inventory.
+[/list]
+
+[b]Requirements[/b]
+Kingdom Inc. for Windows using the Mono runtime, with [url=https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.6]BepInEx 5[/url] installed separately. Verified against Release v1.0.10, Unity 6000.3.27f2 and BepInEx 5.4.23.6. No other gameplay mod is required. Loader and game binaries are not bundled.
+
+[b]Installation[/b]
+1. Install BepInEx 5 for the game if needed.
+2. Extract the Leyline Conduits player ZIP into the folder containing KingdomInc.exe.
+3. Confirm the plugin is at BepInEx/plugins/LeylineConduits/LeylineConduits.dll.
+4. Launch the game and research Leyline Conduits beside Enchanter. Build conduits from the Utility category.
+
+[b]How to use[/b]
+1. Place a conduit, open its gear, choose Input, enter a name such as iron, and Apply.
+2. Connect your producer's output to the conduit's green input.
+3. Place another conduit, choose Output, use the same leyline name, and Apply.
+4. Connect the blue output to your destination. The matching conduit can be on another workshop tab.
+5. Use Set Icon in the gear menu to choose a game icon, then Apply to keep it.
+
+Names ignore capitalization and leading/trailing spaces, with a maximum of 32 characters. Unnamed Inputs accept nothing. Opening settings pauses that conduit's network transfers; close settings to let a waiting Input item leave. Disconnect the pipe before changing mode, and drain waiting items before changing the mode or leyline name. Icons can be changed while items are waiting or pipes are connected.
+
+[b]Updating and saves[/b]
+Close the game before replacing an installed DLL and avoid duplicate copies. Existing 0.1.0 conduits automatically use the smaller tile and centered connection while retaining mode, channel, waiting items and pipes. Missing or unavailable saved icons use the default rune.
+
+[b]Compatibility and limitations[/b]
+The release passed 65 isolated checks and 70 checks with Ledger, Party-Up, Sharable Blueprints, Path Finder and Factory API loaded. This includes transfers through Ledger and pointer access to Path Finder's pins. These checks do not establish every combination of companion features.
+
+Initial playable release: large networks, long-running balance and custom blueprint import/export have not been validated. Competing Inputs follow the game's update order; Output round robin is per Input. Windows manual installation is supported; Linux and Vortex deployment have not been verified.
+
+[b]Removal[/b]
+Keep this plugin installed while loading saves containing Leyline Conduits. Let waiting items reach their destinations, remove every conduit from every workshop tab, save, close the game, then remove BepInEx/plugins/LeylineConduits. Drain occupied nodes before removing them.
+
+[b]Version 0.2.0[/b]
+Adds Set Icon with search and paging, persistent icon choices and a default rune option. Shrinks the node to a 64 x 64 sticker-sized tile, centers the connection and retains hover information and gear settings. Includes migration for earlier conduit saves.
+
+[b]Credits[/b]
+Created by Urakka. The promotional cover uses AI-generated artwork based on the user's shared Kingdom .inc thumbnail master. Gameplay screenshots show the actual mod. Native UI, fonts, sprites and prefabs are read from the installed game and are not bundled. BepInEx and Harmony belong to their respective authors. Source: [url=https://github.com/urakkaamyx/KingdomInc_LeylineConduits]KingdomInc_LeylineConduits[/url]. No open-source license has been selected.
+
+[b]Troubleshooting[/b]
+Check the channel names and modes, confirm the Output has a connected destination with room for the item, and close gear settings to resume network transfers. For loading errors, check BepInEx/LogOutput.log and include the game, mod and BepInEx versions in your bug report.

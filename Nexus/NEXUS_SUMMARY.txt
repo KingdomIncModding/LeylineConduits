@@ -1,0 +1,1 @@
+Link distant machines through named leylines. Adds small, sticker-sized conduits with one configurable Input or Output connection, selectable icons, and channels that work across workshop tabs.

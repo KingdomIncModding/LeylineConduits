@@ -1,0 +1,8 @@
+0.2.0 - Initial public release
+
+- Adds small 64 x 64 Leyline Conduit tiles with one Input or Output connection.
+- Links matching named channels across workshop tabs.
+- Adds a searchable, paginated Set Icon picker and default rune option.
+- Saves and copies icon, channel and mode settings without duplicating items.
+- Centers native connections and preserves Path Finder pin access.
+- Migrates 0.1.0 conduit saves while preserving names, roles, pipes and waiting items.
