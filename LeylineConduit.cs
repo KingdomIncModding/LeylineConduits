@@ -15,6 +15,7 @@ namespace KingdomLeylineConduits
     {
         public const string TypeId = "LeylineConduit", TechId = "leyline_conduits";
         public const int Width = 64, Height = 64, ChannelLimit = 32;
+        public const int PortOffset = 40; // Native first port: 30px header + 10px inset.
         public ConduitMode Mode { get; private set; }
         public string Channel { get; private set; } = "";
         public string SelectedIconId { get; private set; } = "";
@@ -22,7 +23,7 @@ namespace KingdomLeylineConduits
         internal bool Editing;
         public override string ElementType => TypeId;
         public override string Label => "Leyline Conduit";
-        public override string IconName => SelectedIconId.Length > 0 ? SelectedIconId : "Icons_155";
+        public override string IconName => SelectedIconId.Length > 0 ? SelectedIconId : ConduitEmblem.IconId;
         public override ElementCategory Category => ElementCategory.Utility;
         public override bool HasCraftButton => false;
         public override int UpgradeSlots => 0;
@@ -31,20 +32,23 @@ namespace KingdomLeylineConduits
         public LeylineConduit()
         {
             RequiredTech = TechId;
-            CostCurrency = CurrencyCollection.GoldMana;
-            CostMultiplier = .25;
+            CostCurrency = CurrencyCollection.GoldRing;
+            CostMultiplier = ConduitCosts.OriginalBuildMultiplier * ConduitCosts.BuildPortalMultiplier;
             Size = new Vector2Int(Width, Height);
-            Description = "A small enchanted conduit with one connection. Use the gear to choose Input or Output and name a leyline. Matching names link across workshop tabs. Each port holds one item.";
+            Description = "An advanced compact Portal with one connection and a named leyline across workshop tabs. Each port holds one item. Transfers cost the same Mana as a Portal, including Portal cost reductions.";
             RebuildPort();
         }
+
+        public override CurrencyCollection GetPurchaseCost(int numElements)
+            => ConduitCosts.BuildPrice(numElements);
 
         void RebuildPort()
         {
             Inputs.Clear(); Outputs.Clear();
             if (Mode == ConduitMode.Input)
-                Inputs.Add(new FlowInput(this, 0) { Position = -Height / 2, BufferSize = 1, Filter = Accept });
+                Inputs.Add(new FlowInput(this, 0) { Position = -PortOffset, BufferSize = 1, Filter = Accept });
             else
-                Outputs.Add(new FlowOutput(this, 0) { Position = Height / 2, BufferSize = 1, Filter = item => true });
+                Outputs.Add(new FlowOutput(this, 0) { Position = PortOffset, BufferSize = 1, Filter = item => true });
         }
 
         bool Accept(InventoryItem item) => item != null && !Editing && Channel.Length > 0 && Port.CanBuffer;
@@ -97,10 +101,13 @@ namespace KingdomLeylineConduits
                 if (peer.Editing || !target.CanBuffer || !IsConnected(target)) continue;
                 var receiver = target.ConnectedPipe.ConnectedInput;
                 if ((receiver.BufferSize > 0 && !receiver.CanBuffer) || !receiver.CanAcceptItem(Port.NextItem)) continue;
+                int mana = ConduitCosts.TransferMana;
+                if (!GamePlayer.Current.SpendCurrency(Currency.Mana, mana)) return;
                 // Never clone or recreate an item: equipment quality, adventurer
                 // identity, enchantments and attached mod data stay on this object.
                 target.BufferedItems.Add(Port.NextItem);
                 Port.ConsumeItem();
+                if (World) World.ShowIncome(Currency.Mana, -mana);
                 nextOutput = (index + 1) % peers.Count;
                 return;
             }
@@ -111,7 +118,8 @@ namespace KingdomLeylineConduits
             get
             {
                 if (Channel.Length == 0) return "Name a leyline";
-                if (Port.HasBuffer) return "Item waiting";
+                if (Port.HasBuffer) return Mode == ConduitMode.Input && !GamePlayer.Current.CanAfford(Currency.Mana, ConduitCosts.TransferMana)
+                    ? "Needs " + ConduitCosts.TransferMana + " Mana" : "Item waiting";
                 if (Mode == ConduitMode.Input)
                 {
                     var peers = OutputPeers();
@@ -147,7 +155,7 @@ namespace KingdomLeylineConduits
         internal void NormalizeLayout()
         {
             Size = new Vector2Int(Width, Height);
-            Port.Position = Mode == ConduitMode.Input ? -Height / 2 : Height / 2;
+            Port.Position = Mode == ConduitMode.Input ? -PortOffset : PortOffset;
         }
     }
 }

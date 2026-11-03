@@ -1,5 +1,8 @@
 [b]Leyline Conduits[/b]
-Link distant machines with small enchanted conduits. Give an Input and an Output the same leyline name to move items across your kingdom, including between workshop tabs.
+An advanced Portal upgrade: link distant machines with small enchanted conduits. Give an Input and an Output the same leyline name to move items across your kingdom, including between workshop tabs.
+
+[b]Progression and costs[/b]
+Research Portal, then its Leyline Conduits upgrade. Leyline research costs four times Portal's research price in Gold and Mana; each conduit costs twice Portal's construction price in Gold and Rings. Transfers cost 12 Mana per item, reduced to 6 and then 3 by the existing Portal cost-reduction research. Charge occurs once on a successful transfer; blocked or incompatible destinations consume no Mana. The former testing-price override is retired.
 
 [b]Features[/b]
 [list]
@@ -20,7 +23,7 @@ Kingdom Inc. for Windows using the Mono runtime, with [url=https://github.com/Be
 1. Install BepInEx 5 for the game if needed.
 2. Extract the Leyline Conduits player ZIP into the folder containing KingdomInc.exe.
 3. Confirm the plugin is at BepInEx/plugins/LeylineConduits/LeylineConduits.dll.
-4. Launch the game and research Leyline Conduits beside Enchanter. Build conduits from the Utility category.
+4. Launch the game and research Portal, then Leyline Conduits on its branch. Build conduits from the Utility category.
 
 [b]How to use[/b]
 1. Place a conduit, open its gear, choose Input, enter a name such as iron, and Apply.
@@ -32,18 +35,18 @@ Kingdom Inc. for Windows using the Mono runtime, with [url=https://github.com/Be
 Names ignore capitalization and leading/trailing spaces, with a maximum of 32 characters. Unnamed Inputs accept nothing. Opening settings pauses that conduit's network transfers; close settings to let a waiting Input item leave. Disconnect the pipe before changing mode, and drain waiting items before changing the mode or leyline name. Icons can be changed while items are waiting or pipes are connected.
 
 [b]Updating and saves[/b]
-Close the game before replacing an installed DLL and avoid duplicate copies. Existing 0.1.0 conduits automatically use the smaller tile and centered connection while retaining mode, channel, waiting items and pipes. Missing or unavailable saved icons use the default rune.
+Close the game before replacing an installed DLL and avoid duplicate copies. Earlier conduits automatically use the smaller tile and aligned connection while retaining mode, channel, icon, waiting items and pipes. Previously purchased research is retained. Existing conduits adopt the new per-item Mana charge. Missing or unavailable saved icons use the default rune.
 
 [b]Compatibility and limitations[/b]
-The release passed 65 isolated checks and 70 checks with Ledger, Party-Up, Sharable Blueprints, Path Finder and Factory API loaded. This includes transfers through Ledger and pointer access to Path Finder's pins. These checks do not establish every combination of companion features.
+The 0.3.0 build passed 114 isolated checks and 119 checks with Ledger, Party-Up, Sharable Blueprints, Path Finder and Factory API loaded. This includes Portal research pricing, per-item Mana charges at all three reduction levels, safe waiting when funds are short, transfers through Ledger and pointer access to Path Finder's pins. These checks do not establish every combination of companion features.
 
 Initial playable release: large networks, long-running balance and custom blueprint import/export have not been validated. Competing Inputs follow the game's update order; Output round robin is per Input. Windows manual installation is supported; Linux and Vortex deployment have not been verified.
 
 [b]Removal[/b]
 Keep this plugin installed while loading saves containing Leyline Conduits. Let waiting items reach their destinations, remove every conduit from every workshop tab, save, close the game, then remove BepInEx/plugins/LeylineConduits. Drain occupied nodes before removing them.
 
-[b]Version 0.2.0[/b]
-Adds Set Icon with search and paging, persistent icon choices and a default rune option. Shrinks the node to a 64 x 64 sticker-sized tile, centers the connection and retains hover information and gear settings. Includes migration for earlier conduit saves.
+[b]Version 0.3.0[/b]
+Makes Leyline Conduits an expensive Portal research upgrade with Portal Mana charges per item. Adds matching bronze-and-blue rune art, a tiny native movement grip and aligned ports. Preserves saved settings and waiting inventory.
 
 [b]Credits[/b]
 Created by Urakka. The promotional cover uses AI-generated artwork based on the user's shared Kingdom .inc thumbnail master. Gameplay screenshots show the actual mod. Native UI, fonts, sprites and prefabs are read from the installed game and are not bundled. BepInEx and Harmony belong to their respective authors. Source: [url=https://github.com/urakkaamyx/KingdomInc_LeylineConduits]KingdomInc_LeylineConduits[/url]. No open-source license has been selected.

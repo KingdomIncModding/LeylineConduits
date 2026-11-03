@@ -28,7 +28,7 @@ namespace KingdomLeylineConduits
         void Check(bool passed, string name)
         { if (!passed) throw new InvalidOperationException(name); checks.Add(name); }
         static InventoryItem Item(string id = "iron_ingot") => new InventoryItem(id);
-        static bool ReceivesPointer(Button button)
+        static bool ReceivesPointer(Component button)
         {
             var rect = (RectTransform)button.transform;
             var canvas = button.GetComponentInParent<Canvas>();
@@ -46,14 +46,80 @@ namespace KingdomLeylineConduits
             Check(conduit.Configure(mode, name, out _), "Configure " + mode + " / " + name);
             flow.Elements.Add(conduit); return conduit;
         }
+        void TransferCostChecks()
+        {
+            foreach (int reduction in new[] { 0, 1, 2 })
+            {
+                var player = new GamePlayer(); GamePlayer.Current = player;
+                if (reduction > 0) player.AddTech("portal_cost_reduce");
+                if (reduction > 1) player.AddTech("portal_cost_reduce_2");
+                int cost = new Portal().InputCost;
+                Check(ConduitCosts.TransferMana == cost && cost == (reduction == 0 ? 12 : reduction == 1 ? 6 : 3),
+                    "Per-item Mana matches native Portal with reduction level " + reduction);
+                var sourceFlow = new FlowDiagram(); var targetFlow = new FlowDiagram();
+                player.Flows.Add(sourceFlow); player.Flows.Add(targetFlow);
+                var inlet = Place(sourceFlow, ConduitMode.Input, "paid");
+                var outlet = Place(targetFlow, ConduitMode.Output, "paid");
+                var sink = new Stockpile(); targetFlow.Elements.Add(sink);
+                var pipe = Connect(outlet.Outputs[0], sink.Inputs[0], targetFlow);
+                var original = Item(); inlet.Port.BufferedItems.Add(original);
+                player.AddCurrency(Currency.Mana, cost - 1, false); inlet.Update(0);
+                Check(ReferenceEquals(inlet.Port.NextItem, original) && !outlet.Port.HasBuffer
+                    && player.GetCurrency(Currency.Mana) == cost - 1 && inlet.Status == "Needs " + cost + " Mana",
+                    "Insufficient Mana preserves item and balance at reduction level " + reduction);
+                player.AddCurrency(Currency.Mana, 1, false); inlet.Update(0);
+                Check(!inlet.Port.HasBuffer && ReferenceEquals(outlet.Port.NextItem, original) && player.GetCurrency(Currency.Mana) == 0,
+                    "Successful transfer spends exactly one Portal charge at reduction level " + reduction);
+                outlet.Update(0); pipe.Update(0); inlet.Update(0);
+                Check(ReferenceEquals(sink.Inputs[0].NextItem, original) && player.GetCurrency(Currency.Mana) == 0,
+                    "Output delivery and repeated updates never charge twice at reduction level " + reduction);
+                player.AddCurrency(Currency.Mana, 100, false); inlet.Port.BufferedItems.Add(Item());
+                inlet.Update(0);
+                Check(inlet.Port.HasBuffer && player.GetCurrency(Currency.Mana) == 100,
+                    "Blocked destination costs no Mana at reduction level " + reduction);
+                sink.Inputs[0].BufferedItems.Clear(); sink.Inputs[0].Filter = _ => false; inlet.Update(0);
+                Check(inlet.Port.HasBuffer && player.GetCurrency(Currency.Mana) == 100,
+                    "Incompatible destination costs no Mana at reduction level " + reduction);
+                sink.Inputs[0].Filter = _ => true; targetFlow.DisconnectPipe(pipe); inlet.Update(0);
+                Check(inlet.Port.HasBuffer && player.GetCurrency(Currency.Mana) == 100,
+                    "Disconnected destination costs no Mana at reduction level " + reduction);
+                pipe = Connect(outlet.Outputs[0], sink.Inputs[0], targetFlow); inlet.Editing = true; inlet.Update(0);
+                Check(inlet.Port.HasBuffer && player.GetCurrency(Currency.Mana) == 100,
+                    "Settings pause prevents charging Mana at reduction level " + reduction);
+                inlet.Editing = false;
+                var loaded = (LeylineConduit)FlowElement.FromJson(inlet.ToJson(), sourceFlow);
+                sourceFlow.Elements.Remove(inlet); sourceFlow.Elements.Add(loaded); loaded.Update(0);
+                Check(!loaded.Port.HasBuffer && outlet.Port.HasBuffer && player.GetCurrency(Currency.Mana) == 100 - cost,
+                    "Saved waiting item pays once when routing resumes at reduction level " + reduction);
+            }
+        }
         void ModelChecks()
         {
+            TransferCostChecks();
             var player = new GamePlayer(); GamePlayer.Current = player;
+            player.AddCurrency(Currency.Mana, 10000, false);
             var a = new FlowDiagram { Label = "Source workshop" }; var b = new FlowDiagram { Label = "Remote workshop" };
             player.Flows.Add(a); player.Flows.Add(b);
-            Check(TechNode.Get(LeylineConduit.TechId)?.Previous.Identifier == "enchanter", "Research follows Enchanter");
+            Check(TechNode.Get(LeylineConduit.TechId)?.Previous.Identifier == "portal", "Research is nested directly off Portal");
+            var research = TechNode.Get(LeylineConduit.TechId);
+            var nativeResearch = TechNode.Get("portal"); var nativePortal = new Portal();
+            Check(research.GetCost().GetCurrency().SequenceEqual((nativeResearch.GetCost() * 4).GetCurrency())
+                && research.GetCost().GetCurrency().Select(c => c.c).SequenceEqual(new[] { Currency.Gold, Currency.Mana }),
+                "Upgrade research costs exactly four native Portal research prices in Gold and Mana");
+            Check(new LeylineConduit().GetPurchaseCost(0).GetCurrency().SequenceEqual((nativePortal.GetPurchaseCost(0) * 2).GetCurrency())
+                && new LeylineConduit().GetPurchaseCost(100).GetCurrency().SequenceEqual((nativePortal.GetPurchaseCost(100) * 2).GetCurrency()),
+                "Construction costs exactly two native Portal prices and ignores the retired testing override");
+            Check(research.IsLocked && research.AllRequirements.Any(node => node.Identifier == "portal"), "Portal is required before upgrade research");
+            // Supply the native branch root in this UI-free fixture without its UI unlock callback.
+            if (research.Root != null) ((bool[])AccessTools.Field(typeof(GamePlayer), "_techUnlocked").GetValue(player))[research.Root.Ordinal] = true;
+            player.AddTech("portal");
+            Check(!research.IsLocked, "Owning Portal makes Leyline research available on its native branch");
+            Check(new LeylineConduit().IconName == research.IconName
+                && SpriteLibrary.Get(research.IconName) == ConduitEmblem.Sprite
+                && ConduitEmblem.Sprite.texture.filterMode == FilterMode.Point,
+                "Research and construction resolve the shared custom pixel seal through native sprite lookup");
             Check(!new LeylineConduit().IsPurchaseable(player), "Conduit locked before research");
-            player.AddTech("enchanter"); player.AddTech(LeylineConduit.TechId);
+            player.AddTech(LeylineConduit.TechId);
             Check(new LeylineConduit().IsPurchaseable(player), "Research unlocks construction");
             Check(FlowElement.Create(LeylineConduit.TypeId) is LeylineConduit && FlowElement.Create("Forge") is Forge, "Native and custom factories resolve");
             var blank = new LeylineConduit();
@@ -139,9 +205,9 @@ namespace KingdomLeylineConduits
             Check(lonely.Configure(ConduitMode.Input, "lonely", "", out _) && lonely.SelectedIconId == "", "Rune default can be restored with a waiting item");
             var legacy = lonely.ToJson().AsJsonObject; legacy.Remove("LeylineIcon"); legacy["Inputs"][0].AsJsonObject["Position"] = -48;
             var upgraded = (LeylineConduit)FlowElement.FromJson(legacy, a);
-            Check(upgraded.Size == new Vector2Int(64, 64) && upgraded.Port.Position == -32 && upgraded.Channel == "lonely"
+            Check(upgraded.Size == new Vector2Int(64, 64) && upgraded.Port.Position == -LeylineConduit.PortOffset && upgraded.Channel == "lonely"
                 && upgraded.SelectedIconId == "" && upgraded.Port.NextItem.Type.Identifier == stranded.Type.Identifier,
-                "Version 0.1 saves shrink safely and retain names and buffered inventory with the default rune");
+                "Legacy saves adopt the aligned port layout and retain names and buffered inventory with the default rune");
             legacy["LeylineIcon"] = "missing_icon";
             Check(((LeylineConduit)FlowElement.FromJson(legacy, a)).SelectedIconId == "", "Unavailable saved icon falls back to rune");
             if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("urakka.kingdominc.ledgermod"))
@@ -160,13 +226,15 @@ namespace KingdomLeylineConduits
             yield return new WaitForSecondsRealtime(5);
             string directory = Path.Combine(Paths.GameRootPath, "_Mods", "LeylineConduits", "Verification");
             Directory.CreateDirectory(directory); string error = null;
+            File.WriteAllBytes(Path.Combine(directory, "leyline-emblem.png"), ImageConversion.EncodeToPNG(ConduitEmblem.Sprite.texture));
             try
             {
                 if (GameUI.Instance || GamePlayer.Current != null) throw new InvalidOperationException("Diagnostic requires main menu without a loaded kingdom.");
                 ModelChecks();
                 var player = GamePlayer.CreateNewPlayer(); var flow = player.Flows[0];
                 flow.Elements.Clear(); flow.Pipes.Clear(); flow.Label = "Leyline Conduits verification";
-                player.AddTech("enchanter"); player.AddTech(LeylineConduit.TechId);
+                player.AddTech("portal"); player.AddTech(LeylineConduit.TechId);
+                player.AddCurrency(Currency.Mana, 10000, false);
                 var inlet = Place(flow, ConduitMode.Input, "iron"); inlet.Position = new Vector2Int(-192, 64);
                 var outlet = Place(flow, ConduitMode.Output, "iron"); outlet.Position = new Vector2Int(64, 64);
                 flow.Decorations.Add(new FlowDeco { Position = new Vector2Int(-64, 64), Size = new Vector2Int(64, 64),
@@ -191,7 +259,22 @@ namespace KingdomLeylineConduits
                         var port = (Image)AccessTools.Field(typeof(WorldFlowIO), "_sprite").GetValue(conduit.Port.World);
                         var nodeCenter = nodeRect.TransformPoint(nodeRect.rect.center);
                         var portCenter = port.rectTransform.TransformPoint(port.rectTransform.rect.center);
-                        Check(Mathf.Abs(nodeCenter.y - portCenter.y) < .5f, "Native port centered on sticker tile: " + conduit.Mode + " (" + nodeCenter.y + ", " + portCenter.y + ")");
+                        Check(Mathf.Abs(nodeCenter.y - portCenter.y - 8) < .5f, "Native port lowered eight pixels on sticker tile: " + conduit.Mode);
+                        var handle = conduit.World.GetComponentsInChildren<WorldFlowLabel>().Single(label => label.name == "LeylineMoveHandle");
+                        Check(ReceivesPointer(handle), "Tiny move handle receives pointer without blocking gear or pin: " + conduit.Mode);
+                        var startPosition = conduit.Position; var held = Item(); conduit.Port.BufferedItems.Add(held);
+                        handle.OnBeginDrag(new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left });
+                        Check(ReferenceEquals(DragDropManager.Instance.Target, handle), "Handle begins native node drag: " + conduit.Mode);
+                        var movedPosition = startPosition + new Vector2Int(0, 128);
+                        handle.OnDragDropMove(movedPosition, Vector2Int.zero);
+                        Check(conduit.Position == movedPosition && ReferenceEquals(conduit.Port.NextItem, held), "Dragging moves original conduit with its buffered item: " + conduit.Mode);
+                        DragDropManager.Instance.CancelDragDrop();
+                        Check(conduit.Position == startPosition && !DragDropManager.Instance.Busy, "Cancelling handle drag restores original location: " + conduit.Mode);
+                        handle.OnPointerClick(new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left });
+                        handle.OnDragDropMove(movedPosition, Vector2Int.zero);
+                        Physics2D.SyncTransforms(); DragDropManager.Instance.ClearDragDrop(); handle.OnDragDropEnd();
+                        Check(conduit.Position == movedPosition, "Click pickup places the same conduit on the native grid: " + conduit.Mode);
+                        conduit.World.UpdatePosition(startPosition); conduit.Port.BufferedItems.Clear(); Physics2D.SyncTransforms();
                         var gearButton = conduit.World.GetComponentsInChildren<Button>().Single(button => button.name == "LeylineSettingsGear");
                         Check(ReceivesPointer(gearButton), "Small gear receives pointer at its visual center: " + conduit.Mode);
                         var pin = conduit.World.GetComponentsInChildren<Button>().SingleOrDefault(button => button.name == "PathFinder.Pin");
@@ -199,6 +282,14 @@ namespace KingdomLeylineConduits
                     }
                     Check(conduits.All(c => c.World.GetComponentsInChildren<Button>().Count(b => b.enabled && b.name == "LeylineSettingsGear") == 1), "Each node has exactly one working Leyline gear button alongside companion controls");
                     Check(FlowElement.GetBuildableTypes().Count(e => e.ElementType == LeylineConduit.TypeId) == 1, "Build menu contains one unlocked Leyline Conduit");
+                    var alignmentMachine = new Collector { Position = new Vector2Int(320, conduits[0].Position.y) };
+                    WorldFlowManager.Instance.CreateNewElement(alignmentMachine);
+                    Canvas.ForceUpdateCanvases();
+                    var nativePort = alignmentMachine.Inputs[0].World.transform.position;
+                    Check(conduits.All(c => Mathf.Abs(c.Port.World.transform.position.y - nativePort.y) < .5f),
+                        "Input and Output conduit ports line up with a native machine on the same grid row (native=" + nativePort.y
+                        + ", conduit=" + conduits[0].Port.World.transform.position.y + ")");
+                    WorldFlowManager.Instance.RemoveElement(alignmentMachine);
                     Capture(Path.Combine(directory, "leyline-nodes.png"));
                     ExecuteEvents.Execute(conduits[0].World.GetComponentsInChildren<Button>().Single(b => b.name == "LeylineSettingsGear").gameObject,
                         new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);

@@ -1,3 +1,13 @@
+0.3.0 - Portal upgrade
+
+- Moves research directly under Portal; costs four times Portal research.
+- Construction costs twice the native Portal price, in Gold and Rings.
+- Successful transfers pay Portal's current Mana rate: 12, 6, or 3 per item.
+- Uses existing Portal cost-reduction research; blocked transfers never charge.
+- Retires the token-price testing override and retains original balance constants.
+- Adds matching custom rune art, a tiny movement grip and aligned ports.
+- Preserves existing research, node settings, waiting items and pipe connections.
+
 0.2.0 - Initial public release
 
 - Adds small 64 x 64 Leyline Conduit tiles with one Input or Output connection.

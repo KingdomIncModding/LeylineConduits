@@ -4,7 +4,19 @@ Small enchanted ports for Kingdom Inc. Link distant machines by giving their con
 
 [Nexus Mods](https://www.nexusmods.com/kingdominc/mods/9) · [GitHub Releases](https://github.com/urakkaamyx/KingdomInc_LeylineConduits/releases)
 
-## Version 0.2.0
+## Version 0.3.0 — Portal upgrade
+
+Leyline Conduits is researched directly after **Portal** on the same tech-tree branch. Research costs **4× Portal's research price** in Gold and Mana, including native research discounts. Each conduit costs **2× Portal's construction price** in Gold and Rings.
+
+Transfers cost the same as a native Portal: **12 Mana per item**, reduced to **6**, then **3** by Portal's existing cost-reduction research. Mana is charged once when an Input successfully hands an item to a connected, compatible Output. Insufficient Mana leaves the item waiting; blocked, disconnected or incompatible destinations consume no Mana. The hover tooltip and gear menu show the current rate.
+
+A tiny grip above the rune moves the conduit using native node movement: drag it, or click to pick up and place. Right-click cancels. Pipes follow the node. The pin and gear stay separately clickable. Both ports sit 8 pixels lower to align with the first port of a native machine on the same grid row; existing conduits adopt this position on load.
+
+The cheap testing override has been retired. Old `Testing.GoldOnlyCosts` configuration entries are ignored. The original 0.2.0 balance remains archived in `ConduitCosts.cs`: Gold + Mana, construction multiplier **0.25**, research multiplier **0.5**, and the former Enchanter cost tier.
+
+A custom bronze seal with a blue crystal rune matches across the tech tree, build menu, default conduit tile and settings preview. Player-selected icons are retained. Published downloads are available through the Nexus Mods and GitHub Releases links above.
+
+### Features
 
 - Compact 64 × 64 workspace footprint, matching a one-cell sticker, with one pipe connection per conduit.
 - Icon-focused tile with a small gear; hover for mode, leyline name and status.
@@ -15,7 +27,7 @@ Small enchanted ports for Kingdom Inc. Link distant machines by giving their con
 - Multiple Outputs share an Input's items in round-robin order, skipping disconnected, occupied or incompatible destinations.
 - Each conduit holds one item. Blocked items wait; the network moves the original item object, preserving its equipment/adventurer data.
 - Modes, names, selected icons, pipes and waiting items use the game's native save format. Copies retain settings without copying items.
-- Research **Leyline Conduits** beside **Enchanter**, then build from the Utility category.
+- Research **Portal → Leyline Conduits**, then build from the Utility category.
 
 ## Requirements
 
@@ -31,7 +43,7 @@ Manual installation is supported. Vortex deployment has not been tested.
 
 ## Use
 
-1. Research Leyline Conduits after Enchanter and place two conduits.
+1. Research Portal, then Leyline Conduits, and place two conduits.
 2. Open the first gear, choose **Input**, enter a name such as `iron`, and Apply.
 3. Connect your producer's output to that conduit's green input.
 4. Open the other gear, choose **Output**, enter `iron`, and Apply.
@@ -46,6 +58,8 @@ Disconnect a conduit's pipe before switching its mode. Drain waiting items befor
 ## Saves, updating and removal
 
 Keep the plugin installed while loading saves containing Leyline Conduits. To uninstall, let waiting items reach their destinations, remove every conduit from every workshop tab, save, close the game, and remove the plugin folder. Removing an occupied node follows the native game's item cleanup rules; drain it first.
+
+Previously purchased Leyline research is retained on existing saves; it is not refunded or revoked. Existing conduits keep their names, roles, icons, pipes and waiting items, and use the new per-item Mana cost after updating.
 
 Existing 0.1.0 conduits automatically use the smaller size and centered connection when loaded, retaining their mode, channel, pipes and waiting items. Saves without an icon, or with an unavailable icon identifier, use the default rune.
 

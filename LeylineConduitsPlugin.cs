@@ -18,28 +18,70 @@ namespace KingdomLeylineConduits
     [BepInPlugin(Id, "Leyline Conduits", Version)]
     public sealed partial class LeylineConduitsPlugin : BaseUnityPlugin
     {
-        public const string Id = "urakka.kingdominc.leylineconduits", Version = "0.2.0";
+        public const string Id = "urakka.kingdominc.leylineconduits", Version = "0.3.0";
         Harmony harmony;
         internal static bool Diagnostic => Environment.GetCommandLineArgs().Contains("-leyline-smoke");
         void Awake()
         {
-            harmony = new Harmony(Id); harmony.PatchAll(Assembly.GetExecutingAssembly());
+            harmony = new Harmony(Id);
+            // Keep disposable runs offline even if a later patch fails during startup.
+            if (Diagnostic) harmony.CreateClassProcessor(typeof(Offline)).Patch();
+            try { harmony.PatchAll(Assembly.GetExecutingAssembly()); }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex);
+                if (Diagnostic)
+                {
+                    var directory = System.IO.Path.Combine(Paths.GameRootPath, "_Mods", "LeylineConduits", "Verification");
+                    System.IO.Directory.CreateDirectory(directory);
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(directory, "runtime-tests.json"),
+                        new LightJson.JsonObject { { "passed", false }, { "version", Version }, { "error", ex.ToString() } }.ToString(true));
+                }
+                throw;
+            }
             Logger.LogInfo("Leyline Conduits ready: compact named Input/Output ports.");
             if (Diagnostic) { Application.runInBackground = true; StartCoroutine(RuntimeCheck()); }
         }
-        void Start() => EnsureResearch();
+        void Start()
+        {
+            EnsureResearch();
+            // TechNode initialization needs the game's language settings, which
+            // are unavailable during BepInEx Awake. Patch it after native startup.
+            harmony.Patch(AccessTools.Method(typeof(TechNode), nameof(TechNode.GetCost)),
+                prefix: new HarmonyMethod(typeof(ResearchPrice), "Prefix"));
+        }
         void OnDestroy() => harmony?.UnpatchSelf();
         internal static void EnsureResearch()
         {
             if (TechNode.Get(LeylineConduit.TechId) != null) return;
-            var previous = TechNode.Get("enchanter");
-            if (previous == null) throw new InvalidOperationException("Enchanter research is unavailable.");
-            TechNode.Add(new TechNode(LeylineConduit.TechId) {
-                Name = "Leyline Conduits", Description = "Link small Input and Output conduits by naming a shared leyline. Works across workshop tabs.",
+            var previous = TechNode.Get("portal");
+            if (previous == null) throw new InvalidOperationException("Portal research is unavailable.");
+            var research = new TechNode(LeylineConduit.TechId) {
+                Name = "Leyline Conduits", Description = "An advanced, compact Portal upgrade. Link named leylines across workshop tabs. Transfers use the same Mana cost and cost-reduction research as Portals.",
                 NodeType = TechNodeType.FlowElement, Previous = previous,
-                RelativePosition = new Vector2Int(-315, -180), IconName = "Icons_155",
-                CostTier = previous.CostTier, CostCurrency = CurrencyCollection.GoldMana, CostMultiplier = .5
-            });
+                RelativePosition = new Vector2Int(-300, 0), IconName = ConduitEmblem.IconId,
+                CostTier = previous.CostTier
+            };
+            ConduitCosts.ApplyResearch(research);
+            TechNode.Add(research);
+        }
+        static class ResearchPrice
+        {
+            static bool Prefix(TechNode __instance, ref CurrencyCollection __result)
+            {
+                if (__instance.Identifier != LeylineConduit.TechId) return true;
+                // Derive the exact price from Portal, including native prestige discounts.
+                __result = ConduitCosts.ResearchPrice(); return false;
+            }
+        }
+        [HarmonyPatch(typeof(SpriteLibrary), nameof(SpriteLibrary.Get), new[] { typeof(string) })]
+        static class Emblem
+        {
+            static bool Prefix(string name, ref Sprite __result)
+            {
+                if (name != ConduitEmblem.IconId) return true;
+                __result = ConduitEmblem.Sprite; return false;
+            }
         }
         [HarmonyPatch(typeof(GamePlayer), MethodType.Constructor)]
         static class Research { static void Prefix() => EnsureResearch(); }

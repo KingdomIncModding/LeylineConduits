@@ -78,7 +78,7 @@ namespace KingdomLeylineConduits
             ui.Text(panel, "Icon", 20, 245, 320, 22, 15);
             iconPreview = ui.Icon(panel, null, 20, 274, 32); iconPreview.name = "LeylineIconPreview";
             runePreview = ConduitUi.Rect(panel, "RunePreview", 20, 274, 32, 32).gameObject.AddComponent<ConduitRuneGraphic>();
-            runePreview.color = ConduitUi.Gold; runePreview.raycastTarget = false;
+            runePreview.color = Color.white; runePreview.raycastTarget = false;
             ui.Button(panel, "Set Icon", 64, 273, 180, 34, ShowIconPicker).name = "SetLeylineIcon";
             ui.Button(panel, "Rune", 254, 273, 86, 34, () => SelectIcon("")).name = "ResetLeylineIcon";
             message = ui.Text(panel, "", 20, 320, 320, 34, 12); message.color = ConduitUi.Red;
@@ -155,7 +155,8 @@ namespace KingdomLeylineConduits
         void SelectMode(ConduitMode mode)
         {
             selected = mode; ui.Select(input, mode == ConduitMode.Input); ui.Select(output, mode == ConduitMode.Output);
-            description.text = mode == ConduitMode.Input ? "Machine → leyline" : "Leyline → machine";
+            description.text = (mode == ConduitMode.Input ? "Machine → leyline" : "Leyline → machine")
+                + " · " + ConduitCosts.TransferMana + " Mana/item";
             description.color = mode == ConduitMode.Input ? ConduitUi.Green : ConduitUi.Blue;
             message.text = mode != conduit.Mode && conduit.Port.ConnectedPipe != null ? "Disconnect the pipe before changing mode." : "";
         }

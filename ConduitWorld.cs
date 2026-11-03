@@ -35,9 +35,16 @@ namespace KingdomLeylineConduits
             var background = LeylineConduitsPlugin.Field<Image>(world, "_background");
             tooltip = background.GetComponent<TooltipSource>() ?? background.gameObject.AddComponent<TooltipSource>();
             tooltip.enabled = true;
+            // Native header drag behavior preserves pipes, grid snapping,
+            // collision rejection, cancellation and workshop-tab movement.
+            var handle = ui.Box(body, "LeylineMoveHandle", 20, 1, 24, 14, "Button03");
+            handle.gameObject.AddComponent<WorldFlowLabel>();
+            handle.gameObject.AddComponent<TooltipSource>().SetTooltip("Move conduit", "Drag this grip to move. Click to pick up; right-click to cancel.");
+            for (int row = 0; row < 2; row++) for (int col = 0; col < 3; col++)
+                ui.Fill(handle.transform, "GripRivet", 7 + col * 4, 4 + row * 4, 2, 2, ConduitUi.Gold);
             icon = ui.Icon(body, null, 16, 18, 32); icon.name = "LeylineSelectedIcon";
             rune = ConduitUi.Rect(body, "LeylineRune", 16, 18, 32, 32).gameObject.AddComponent<ConduitRuneGraphic>();
-            rune.color = ConduitUi.Gold; rune.raycastTarget = false;
+            rune.color = Color.white; rune.raycastTarget = false;
             var gear = ui.Button(body, "", 46, 0, 18, 18, OpenSettings); gear.name = "LeylineSettingsGear";
             var cog = ConduitUi.Rect(gear.transform, "Cog", 3, 3, 12, 12).gameObject.AddComponent<ConduitGearGraphic>();
             cog.color = ConduitUi.Paper; cog.raycastTarget = false;
@@ -56,7 +63,8 @@ namespace KingdomLeylineConduits
             icon.sprite = ConduitIcons.Find(conduit.SelectedIconId); icon.enabled = icon.sprite;
             rune.enabled = !icon.sprite;
             tooltip.SetTooltip("Leyline Conduit · " + conduit.Mode,
-                (conduit.Channel.Length == 0 ? "Unbound" : conduit.Channel) + "\n" + conduit.Status + "\nGear: mode, leyline name and icon.");
+                (conduit.Channel.Length == 0 ? "Unbound" : conduit.Channel) + "\n" + conduit.Status + "\n"
+                + ConduitCosts.TransferMana + " Mana per item\nTop grip: move. Gear: mode, leyline name and icon.");
         }
         public void OpenSettings()
         {

@@ -15,6 +15,8 @@ New-Item -ItemType Directory -Path (Join-Path $bep 'plugins\LeylineConduits'),(J
 New-Item -ItemType Junction -Path (Join-Path $bep 'core') -Value (Join-Path $gameRoot 'BepInEx\core') | Out-Null
 Copy-Item -LiteralPath (Join-Path $gameRoot 'BepInEx\config\BepInEx.cfg') -Destination (Join-Path $bep 'config\BepInEx.cfg')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'bin\Release\netstandard2.1\LeylineConduits.dll') -Destination (Join-Path $bep 'plugins\LeylineConduits\LeylineConduits.dll')
+# Reproduce an existing testing install: this retired setting must not make 0.3 cheap.
+[IO.File]::WriteAllText((Join-Path $bep 'config\urakka.kingdominc.leylineconduits.cfg'), "[Testing]`nGoldOnlyCosts = true`n")
 if ($WithExistingPlugins) {
     foreach ($plugin in @('LedgerMod','PartyNode','SharableBlueprints','PathFinder','KingdomFactoryApi')) {
         $pluginSource = Join-Path $gameRoot ('BepInEx\plugins\' + $plugin + '\' + $plugin + '.dll')
