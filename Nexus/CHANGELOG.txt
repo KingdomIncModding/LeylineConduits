@@ -1,3 +1,10 @@
+0.4.0 - Foundation integration
+
+- Requires Foundation 0.4.1 or later.
+- Moves Leyline Conduits research to Tech Tree → Mods, with Portal still required.
+- Preserves existing research, conduit settings, waiting items and pipe connections.
+- Retains Portal-based prices, Mana charges, compact controls and custom icons.
+
 0.3.0 - Portal upgrade
 
 - Moves research directly under Portal; costs four times Portal research.
@@ -14,5 +21,5 @@
 - Links matching named channels across workshop tabs.
 - Adds a searchable, paginated Set Icon picker and default rune option.
 - Saves and copies icon, channel and mode settings without duplicating items.
-- Centers native connections and preserves Path Finder pin access.
+- Centers native connections.
 - Migrates 0.1.0 conduit saves while preserving names, roles, pipes and waiting items.

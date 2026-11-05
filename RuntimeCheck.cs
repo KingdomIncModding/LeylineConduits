@@ -100,7 +100,8 @@ namespace KingdomLeylineConduits
             player.AddCurrency(Currency.Mana, 10000, false);
             var a = new FlowDiagram { Label = "Source workshop" }; var b = new FlowDiagram { Label = "Remote workshop" };
             player.Flows.Add(a); player.Flows.Add(b);
-            Check(TechNode.Get(LeylineConduit.TechId)?.Previous.Identifier == "portal", "Research is nested directly off Portal");
+            Check(TechNode.Get(LeylineConduit.TechId)?.AllRequirements.Any(n => n.Identifier == "portal") == true,
+                "Research retains the native Portal prerequisite on Mods");
             var research = TechNode.Get(LeylineConduit.TechId);
             var nativeResearch = TechNode.Get("portal"); var nativePortal = new Portal();
             Check(research.GetCost().GetCurrency().SequenceEqual((nativeResearch.GetCost() * 4).GetCurrency())
@@ -114,13 +115,14 @@ namespace KingdomLeylineConduits
             if (research.Root != null) ((bool[])AccessTools.Field(typeof(GamePlayer), "_techUnlocked").GetValue(player))[research.Root.Ordinal] = true;
             player.AddTech("portal");
             Check(!research.IsLocked, "Owning Portal makes Leyline research available on its native branch");
-            Check(new LeylineConduit().IconName == research.IconName
+            Check(new LeylineConduit().Icon == research.Icon
                 && SpriteLibrary.Get(research.IconName) == ConduitEmblem.Sprite
                 && ConduitEmblem.Sprite.texture.filterMode == FilterMode.Point,
                 "Research and construction resolve the shared custom pixel seal through native sprite lookup");
             Check(!new LeylineConduit().IsPurchaseable(player), "Conduit locked before research");
             player.AddTech(LeylineConduit.TechId);
             Check(new LeylineConduit().IsPurchaseable(player), "Research unlocks construction");
+            FoundationModelChecks();
             Check(FlowElement.Create(LeylineConduit.TypeId) is LeylineConduit && FlowElement.Create("Forge") is Forge, "Native and custom factories resolve");
             var blank = new LeylineConduit();
             Check(blank.Inputs.Count == 1 && blank.Outputs.Count == 0 && !blank.Inputs[0].CanAcceptItem(Item()), "Unbound conduit has one input and refuses arrivals");
@@ -317,6 +319,7 @@ namespace KingdomLeylineConduits
                         && conduits[0].World.GetComponentsInChildren<Image>().Single(image => image.name == "LeylineSelectedIcon").sprite == ItemType.Get("iron_ingot").GetIcon(),
                         "Applied icon renders on the sticker sized node");
                     conduits[0].World.UpdateIO();
+                    FoundationWorldChecks(directory);
                 }
                 catch (Exception ex) { error = ex.ToString(); }
             }
@@ -326,6 +329,12 @@ namespace KingdomLeylineConduits
                 try
                 {
                     var flow = GamePlayer.Current.Flows[0]; var inlet = flow.Elements.OfType<LeylineConduit>().First();
+                    foreach (var conduit in flow.Elements.OfType<LeylineConduit>())
+                    {
+                        Check(ReceivesPointer(conduit.World.GetComponentsInChildren<WorldFlowLabel>().Single(label => label.name == "LeylineMoveHandle"))
+                            && ReceivesPointer(conduit.World.GetComponentsInChildren<Button>().Single(button => button.name == "LeylineSettingsGear")),
+                            "Closing Foundation research restores grip and gear pointer access: " + conduit.Mode);
+                    }
                     Check(inlet.World.GetComponentsInChildren<WorldFlowIO>().Length == 1 && inlet.Port is FlowOutput, "Mode change rebuilds a single visible output port");
                     inlet.Configure(ConduitMode.Input, "iron", out _); inlet.World.GetComponent<ConduitWorld>().OpenSettings();
                     Capture(Path.Combine(directory, "leyline-settings.png"));

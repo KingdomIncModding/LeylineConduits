@@ -6,36 +6,38 @@ using Assets.Source.Items;
 using Assets.Source.Player;
 using LightJson;
 using UnityEngine;
+using KingdomFoundation.Api;
 
 namespace KingdomLeylineConduits
 {
     public enum ConduitMode { Input, Output }
 
-    public sealed class LeylineConduit : FlowElement
+    public sealed class LeylineConduit : WorkspaceNode
     {
         public const string TypeId = "LeylineConduit", TechId = "leyline_conduits";
         public const int Width = 64, Height = 64, ChannelLimit = 32;
         public const int PortOffset = 40; // Native first port: 30px header + 10px inset.
+        public const string NodeDescription = "An advanced compact Portal with one connection and a named leyline across workshop tabs. Each port holds one item. Transfers cost the same Mana as a Portal, including Portal cost reductions.";
         public ConduitMode Mode { get; private set; }
         public string Channel { get; private set; } = "";
         public string SelectedIconId { get; private set; } = "";
         int nextOutput;
         internal bool Editing;
-        public override string ElementType => TypeId;
         public override string Label => "Leyline Conduit";
         public override string IconName => SelectedIconId.Length > 0 ? SelectedIconId : ConduitEmblem.IconId;
+        public override Sprite Icon => ConduitIcons.Find(SelectedIconId) ?? ConduitEmblem.Sprite;
         public override ElementCategory Category => ElementCategory.Utility;
         public override bool HasCraftButton => false;
         public override int UpgradeSlots => 0;
         public FlowIO Port => Mode == ConduitMode.Input ? (FlowIO)Inputs[0] : Outputs[0];
 
-        public LeylineConduit()
+        public LeylineConduit() : base(TypeId)
         {
             RequiredTech = TechId;
             CostCurrency = CurrencyCollection.GoldRing;
             CostMultiplier = ConduitCosts.OriginalBuildMultiplier * ConduitCosts.BuildPortalMultiplier;
             Size = new Vector2Int(Width, Height);
-            Description = "An advanced compact Portal with one connection and a named leyline across workshop tabs. Each port holds one item. Transfers cost the same Mana as a Portal, including Portal cost reductions.";
+            Description = NodeDescription;
             RebuildPort();
         }
 

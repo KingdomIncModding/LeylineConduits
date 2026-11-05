@@ -1,6 +1,10 @@
 param([switch]$StageForNextLaunch)
 $ErrorActionPreference = 'Stop'
 $gameRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
+$foundation = Join-Path $gameRoot 'BepInEx\plugins\Foundation\Foundation.dll'
+if (-not (Test-Path -LiteralPath $foundation) -or [Reflection.AssemblyName]::GetAssemblyName($foundation).Version -lt [Version]'0.5.0') {
+    throw 'Leyline Conduits requires Foundation 0.5.0 or later.'
+}
 dotnet build (Join-Path $PSScriptRoot 'LeylineConduits.csproj') -c Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Leyline Conduits build failed.' }
 $destination = Join-Path $gameRoot 'BepInEx\plugins\LeylineConduits'

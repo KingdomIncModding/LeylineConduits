@@ -52,6 +52,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     player = OUT / f'KingdomInc-LeylineConduits-{VERSION}.zip'
     player_entries = {'BepInEx/plugins/LeylineConduits/LeylineConduits.dll': dll.read_bytes(),
+                      'Leyline Conduits requirements.txt': (PROJECT / 'Nexus/REQUIREMENTS.txt').read_bytes(),
                       'Leyline Conduits README.txt': (PROJECT / 'README.md').read_bytes()}
     archive(player, player_entries)
     source_files = sorted(PROJECT.glob('*.cs')) + [PROJECT / name for name in

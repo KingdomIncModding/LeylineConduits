@@ -15,15 +15,18 @@ New-Item -ItemType Directory -Path (Join-Path $bep 'plugins\LeylineConduits'),(J
 New-Item -ItemType Junction -Path (Join-Path $bep 'core') -Value (Join-Path $gameRoot 'BepInEx\core') | Out-Null
 Copy-Item -LiteralPath (Join-Path $gameRoot 'BepInEx\config\BepInEx.cfg') -Destination (Join-Path $bep 'config\BepInEx.cfg')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'bin\Release\netstandard2.1\LeylineConduits.dll') -Destination (Join-Path $bep 'plugins\LeylineConduits\LeylineConduits.dll')
+$foundation = Join-Path $gameRoot 'BepInEx\plugins\Foundation\Foundation.dll'
+if (-not (Test-Path -LiteralPath $foundation) -or [Reflection.AssemblyName]::GetAssemblyName($foundation).Version -lt [Version]'0.5.0') {
+    throw 'Install Foundation 0.5.0 or later before running this check.'
+}
+New-Item -ItemType Directory -Path (Join-Path $bep 'plugins\Foundation') -Force | Out-Null
+Copy-Item -LiteralPath $foundation -Destination (Join-Path $bep 'plugins\Foundation\Foundation.dll')
 # Reproduce an existing testing install: this retired setting must not make 0.3 cheap.
 [IO.File]::WriteAllText((Join-Path $bep 'config\urakka.kingdominc.leylineconduits.cfg'), "[Testing]`nGoldOnlyCosts = true`n")
 if ($WithExistingPlugins) {
-    foreach ($plugin in @('LedgerMod','PartyNode','SharableBlueprints','PathFinder','KingdomFactoryApi')) {
-        $pluginSource = Join-Path $gameRoot ('BepInEx\plugins\' + $plugin + '\' + $plugin + '.dll')
-        if (-not (Test-Path -LiteralPath $pluginSource)) { throw "Missing companion plugin: $pluginSource" }
-        $pluginTarget = Join-Path $bep ('plugins\' + $plugin)
-        New-Item -ItemType Directory -Path $pluginTarget -Force | Out-Null
-        Copy-Item -LiteralPath $pluginSource -Destination (Join-Path $pluginTarget ($plugin + '.dll'))
+    foreach ($plugin in Get-ChildItem -LiteralPath (Join-Path $gameRoot 'BepInEx\plugins') -Directory) {
+        if ($plugin.Name -in @('LeylineConduits','Foundation')) { continue }
+        Copy-Item -LiteralPath $plugin.FullName -Destination (Join-Path $bep 'plugins') -Recurse
     }
     [IO.File]::WriteAllText((Join-Path $bep 'config\urakka.kingdominc.factoryapi.cfg'), "[Server]`nPort = 17849`n")
 }
@@ -45,7 +48,8 @@ try {
         Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $verification $file.Name) -Force
     }
     if ($WithExistingPlugins) { Copy-Item -LiteralPath $resultPath -Destination (Join-Path $verification 'compatibility-tests.json') -Force }
-    Copy-Item -LiteralPath $logPath -Destination (Join-Path $verification 'unity-isolated.log') -Force
+    $savedLog = if ($WithExistingPlugins) { 'unity-companion.log' } else { 'unity-isolated.log' }
+    Copy-Item -LiteralPath $logPath -Destination (Join-Path $verification $savedLog) -Force
     $result | ConvertTo-Json -Depth 8
     if (-not $result.passed) { throw "Isolated diagnostic failed. See $logPath" }
     Start-Sleep -Seconds 2
