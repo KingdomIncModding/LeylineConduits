@@ -45,4 +45,4 @@ Existing purchased research, names, modes, icons, pipes and waiting items are re
 Keep Leyline Conduits installed while loading saves containing conduits. Before removing it, let waiting items reach their destinations, remove every conduit from every workshop tab, save and close the game. Then remove BepInEx/plugins/LeylineConduits.
 
 [b]Credits[/b]
-Created by Urakka. The promotional cover uses AI-generated artwork. Game assets are not bundled. [url=https://github.com/KingdomIncModding/KingdomInc_LeylineConduits]Source code[/url].
+Created by Urakka. The promotional cover uses AI-generated artwork. Game assets are not bundled. [url=https://github.com/KingdomIncModding/LeylineConduits]Source code[/url].

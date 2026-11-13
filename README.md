@@ -2,7 +2,7 @@
 
 Link distant machines with small enchanted conduits. Give an Input and an Output the same leyline name to move items between them, including across workshop tabs.
 
-[Nexus Mods](https://www.nexusmods.com/kingdominc/mods/9) · [GitHub Releases](https://github.com/KingdomIncModding/KingdomInc_LeylineConduits/releases)
+[Nexus Mods](https://www.nexusmods.com/kingdominc/mods/9) · [GitHub Releases](https://github.com/KingdomIncModding/LeylineConduits/releases)
 
 ## Version 0.4.0
 
@@ -61,4 +61,4 @@ Keep Leyline Conduits installed while loading saves containing conduits. Before 
 
 Created by Urakka. The promotional cover uses AI-generated artwork. Game assets are not bundled.
 
-[Source code](https://github.com/KingdomIncModding/KingdomInc_LeylineConduits)
+[Source code](https://github.com/KingdomIncModding/LeylineConduits)
