@@ -1,1 +1,0 @@
-An advanced Portal upgrade with sticker-sized conduits, named channels across workshop tabs, selectable icons and a tiny movement grip. Uses Portal's per-item Mana cost and cost-reduction research.

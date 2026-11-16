@@ -1,12 +1,12 @@
 # Leyline Conduits
 
+**Current release: 0.4.1 — for Kingdom Inc game version 1.0.14.**
+
 Link distant machines with small enchanted conduits. Give an Input and an Output the same leyline name to move items between them, including across workshop tabs.
 
 [Nexus Mods](https://www.nexusmods.com/kingdominc/mods/9) · [GitHub Releases](https://github.com/KingdomIncModding/LeylineConduits/releases)
 
-## Version 0.4.0
-
-Requires **Foundation 0.5.0 or later**. Find **Leyline Conduits** under **Tech Tree → Mods**, after researching **Portal**. Existing research and conduits are retained when updating.
+Requires **Foundation 0.14.5 or later**. Find **Leyline Conduits** under **Tech Tree → Mods**, after researching **Portal**. Existing research and conduits are retained when updating.
 
 ## Features
 
@@ -23,21 +23,21 @@ Requires **Foundation 0.5.0 or later**. Find **Leyline Conduits** under **Tech T
 
 Research Portal first, then purchase **Leyline Conduits** in **Tech Tree → Mods**. Build conduits from the **Utility** category.
 
-Research costs **4× Portal's research price** in Gold and Mana, including research discounts. Each conduit costs **2× Portal's construction price** in Gold and Rings.
+Research costs **4× Portal's research price** in Gold and Mana, including research discounts. Construction uses **2× Portal's base construction multiplier** in Gold and Rings.
 
 Transfers cost **12 Mana per item**, reduced to **6**, then **3** by Portal cost-reduction research. Mana is charged once when an Input successfully hands an item to an Output. Insufficient Mana leaves the item waiting. Blocked, disconnected and incompatible destinations consume no Mana. Hover over a conduit or open its gear to see the current rate.
 
 ## Requirements and installation
 
-Requires Kingdom Inc. for Windows, **BepInEx 5** and **Foundation 0.5.0+**, installed separately.
+Requires Kingdom Inc. for Windows, **BepInEx 5** and **Foundation 0.14.5+**, installed separately.
 
 1. Close the game.
 2. Install the requirements.
 3. Extract the Leyline Conduits player ZIP into the folder containing `KingdomInc.exe`.
-4. The plugin should be at `BepInEx/plugins/LeylineConduits/LeylineConduits.dll`.
+4. Confirm the plugin files are at `BepInEx/plugins/LeylineConduits/LeylineConduits.dll` and `BepInEx/plugins/LeylineConduits/mod.json`.
 5. Launch the game.
 
-When updating, replace the existing DLL and avoid duplicate copies.
+When updating, replace the existing plugin files and avoid duplicate copies.
 
 ## How to use
 
@@ -57,8 +57,18 @@ Existing purchased research, names, modes, icons, pipes and waiting items are re
 
 Keep Leyline Conduits installed while loading saves containing conduits. Before removing it, let waiting items reach their destinations, remove every conduit from every workshop tab, save and close the game. Then remove `BepInEx/plugins/LeylineConduits`.
 
+## Compatibility
+
+| Class.Method | Hook Type | Impact |
+|---|---|---|
+| TechNode.GetCost | Foundation hook (before) | Derives Leyline Conduits research cost directly from Portal's current discounted cost. |
+| WorldFlowElement.SetElement | Foundation hook (after) | Hides default building chrome, stretches the port container, and attaches the compact tile view. |
+| WorldFlowIO.SetIO | Foundation hook (after) | Updates the single conduit port's buffer/empty color sprites. |
+| FlowElement.FromJson | Foundation hook (after) | Normalizes legacy saved conduit dimensions and port offset after deserialization. |
+
 ## Credits
 
 Created by Urakka. The promotional cover uses AI-generated artwork. Game assets are not bundled.
 
 [Source code](https://github.com/KingdomIncModding/LeylineConduits)
+
