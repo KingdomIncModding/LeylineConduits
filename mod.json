@@ -14,7 +14,7 @@
                        "topics":  [
 
                                   ],
-                       "latestTag":  "v0.4.3"
+                       "latestTag":  "v0.4.4"
                    },
     "distribution":  {
                          "nexus":  {
@@ -56,7 +56,7 @@
                         "gameIntegration":  "Foundation"
                     },
     "publishing":  {
-                       "githubReleases":  "https://github.com/KingdomIncModding/LeylineConduits/releases/tag/v0.4.3",
+                       "githubReleases":  "https://github.com/KingdomIncModding/LeylineConduits/releases/tag/v0.4.4",
                        "nexusMods":  "https://www.nexusmods.com/kingdominc/mods/9",
                        "archivePreviousReleases":  false
                    }
