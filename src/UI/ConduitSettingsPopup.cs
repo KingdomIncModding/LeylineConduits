@@ -28,6 +28,7 @@ namespace KingdomLeylineConduits
         List<(string icon, string name)> iconCatalog;
         readonly List<string> presetOptions = new List<string>();
         string selectedIcon = "";
+        bool manualIcon;
         int iconPage;
         ConduitMode selected;
         bool restoreInput;
@@ -314,7 +315,8 @@ namespace KingdomLeylineConduits
 
         internal void SelectIcon(string id)
         {
-            selectedIcon = id;
+            selectedIcon = id ?? "";
+            manualIcon = selectedIcon.Length > 0;
             RefreshIconPreview();
             if (PickerVisible)
                 HideIconPicker();
@@ -397,6 +399,7 @@ namespace KingdomLeylineConduits
             SelectMode(conduit.Mode, allowAutoFill: true);
             message.text = "";
             selectedIcon = conduit.SelectedIconId;
+            manualIcon = conduit.ManualIcon;
             RefreshIconPreview();
             HideIconPicker();
             conduit.Editing = true;
@@ -409,7 +412,7 @@ namespace KingdomLeylineConduits
 
         internal void Apply()
         {
-            if (!conduit.Configure(selected, ChannelField.text, selectedIcon, out var reason))
+            if (!conduit.Configure(selected, ChannelField.text, selectedIcon, manualIcon, out var reason))
             {
                 message.text = reason;
                 return;

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <Version>0.4.2</Version>
+    <Version>0.4.3</Version>
     <AssemblyName>LeylineConduits</AssemblyName>
     <AssemblyName Condition="'$(Verification)' == 'true'">LeylineConduits.Verification</AssemblyName>
     <OutputPath Condition="'$(Verification)' == 'true'">bin\Verification\</OutputPath>

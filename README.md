@@ -1,6 +1,6 @@
 # Leyline Conduits
 
-**Current release: 0.4.2 — for Kingdom Inc game version 1.0.14.**
+**Current release: 0.4.3 — for Kingdom Inc game version 1.0.14.**
 
 Link distant machines with small enchanted conduits. Give an Input and an Output the same leyline name to move items between them, including across workshop tabs.
 
@@ -13,7 +13,7 @@ Requires **Foundation 0.14.5 or later**. Find **Leyline Conduits** under **Tech 
 - Compact 64 × 64 tiles, roughly the size of a one-cell sticker.
 - One connection per conduit, with a gear to choose **Input** or **Output** and enter a leyline name.
 - A tiny top grip lets you drag the conduit or click to pick it up. Right-click cancels placement.
-- **Set Icon** opens a searchable picker of game icons. **Rune** restores the default bronze and blue crystal seal.
+- Icons automatically update to match items passing through. Use **Set Icon** to lock a custom icon, or **Rune** to return to the default crystal seal and auto-icons.
 - Matching names connect conduits across all workshop tabs in the current kingdom.
 - Multiple Outputs receive an Input's items in round-robin order, skipping disconnected, occupied or incompatible destinations.
 - Each conduit holds one item. Equipment and adventurer details stay with the item.

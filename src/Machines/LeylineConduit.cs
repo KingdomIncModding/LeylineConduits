@@ -16,6 +16,7 @@ namespace KingdomLeylineConduits
         public ConduitMode Mode { get; private set; }
         public string Channel { get; private set; } = "";
         public string SelectedIconId { get; private set; } = "";
+        public bool ManualIcon { get; private set; }
         int nextOutput;
         internal bool Editing;
 
@@ -43,9 +44,12 @@ namespace KingdomLeylineConduits
         bool Accept(GameInventoryItem item) => item != null && !Editing && Channel.Length > 0 && Port.CanBuffer;
 
         public bool Configure(ConduitMode mode, string name, out string reason)
-            => Configure(mode, name, SelectedIconId, out reason);
+            => Configure(mode, name, ManualIcon ? SelectedIconId : "", ManualIcon, out reason);
 
         public bool Configure(ConduitMode mode, string name, string iconId, out string reason)
+            => Configure(mode, name, iconId, !string.IsNullOrEmpty(iconId), out reason);
+
+        internal bool Configure(ConduitMode mode, string name, string iconId, bool manualIcon, out string reason)
         {
             reason = null;
             iconId = iconId ?? "";
@@ -80,9 +84,12 @@ namespace KingdomLeylineConduits
             }
             if (changeMode)
                 DisconnectConnectedPipes();
+            if (!manualIcon && (changeMode || changeChannel))
+                iconId = "";
             Mode = mode;
             Channel = name;
             SelectedIconId = iconId;
+            ManualIcon = manualIcon && iconId.Length > 0;
             nextOutput = 0;
             if (changeMode)
                 RebuildPort();
@@ -139,8 +146,22 @@ namespace KingdomLeylineConduits
         internal static bool IsConnected(WorkspacePort output) => output?.ConnectedPipe?.ConnectedOutput == output
             && output.ConnectedPipe.ConnectedInput?.ConnectedPipe == output.ConnectedPipe;
 
+        void ApplyItemIcon(GameInventoryItem item)
+        {
+            if (ManualIcon || item == null)
+                return;
+            string iconId = ConduitIcons.FromItem(item);
+            if (iconId.Length == 0 || string.Equals(SelectedIconId, iconId, StringComparison.Ordinal))
+                return;
+            SelectedIconId = iconId;
+            if (World)
+                World.GetComponent<ConduitWorld>()?.Refresh();
+        }
+
         public override void Update(float delta)
         {
+            if (Port.HasBuffer && !Editing)
+                ApplyItemIcon(Port.BufferedItems[0]);
             if (Mode != ConduitMode.Input || Editing || Channel.Length == 0 || !Port.HasBuffer)
                 return;
             var peers = OutputPeers();
@@ -165,6 +186,7 @@ namespace KingdomLeylineConduits
                 // identity, enchantments and attached mod data stay on this object.
                 target.PrependBuffer(item);
                 Port.ConsumeItem();
+                peer.ApplyItemIcon(item);
                 if (World)
                     FoundationApi.WorkspaceAccess.ShowIncome(World, new GameMoney(nameof(GameCurrency.Mana), -mana));
                 nextOutput = (index + 1) % peers.Count;
@@ -213,6 +235,7 @@ namespace KingdomLeylineConduits
             conduit.Mode = Mode;
             conduit.Channel = Channel;
             conduit.SelectedIconId = SelectedIconId;
+            conduit.ManualIcon = ManualIcon;
             conduit.RebuildPort();
         }
 
@@ -221,6 +244,7 @@ namespace KingdomLeylineConduits
             data["LeylineMode"] = (int)Mode;
             data["LeylineChannel"] = Channel;
             data["LeylineIcon"] = SelectedIconId;
+            data["LeylineManualIcon"] = ManualIcon;
         }
 
         protected override void DataFromJson(JsonObject data, GameWorkspace parent)
@@ -230,6 +254,7 @@ namespace KingdomLeylineConduits
             Channel = new string(name.Where(c => !char.IsControl(c)).Take(ChannelLimit).ToArray()).Trim();
             var icon = data["LeylineIcon"].AsString ?? "";
             SelectedIconId = icon.Length > 0 && ConduitIcons.Find(icon) ? icon : "";
+            ManualIcon = SelectedIconId.Length > 0 && (data["LeylineManualIcon"].IsNull || data["LeylineManualIcon"].AsBoolean);
             RebuildPort();
         }
 

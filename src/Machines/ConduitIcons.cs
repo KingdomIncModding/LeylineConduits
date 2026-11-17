@@ -7,11 +7,34 @@ namespace KingdomLeylineConduits
 {
     internal static class ConduitIcons
     {
+        static Dictionary<Sprite, string> spriteLookup;
+
         internal static Sprite Find(string id)
         {
             if (string.IsNullOrEmpty(id) || string.Equals(id, ConduitEmblem.IconId, StringComparison.Ordinal))
                 return null;
             return FoundationApi.Presentation.FindSprite(id);
+        }
+
+        internal static string FromItem(GameInventoryItem item)
+        {
+            if (item == null)
+                return "";
+            var itemSprite = item.Icon;
+            string typeIcon = item.Type?.IconName;
+            if (!string.IsNullOrEmpty(typeIcon))
+            {
+                var resolved = Find(typeIcon);
+                if (resolved && (!itemSprite || resolved == itemSprite))
+                    return typeIcon;
+            }
+            if (itemSprite)
+            {
+                spriteLookup ??= BuildSpriteIdLookup();
+                if (spriteLookup.TryGetValue(itemSprite, out var matched))
+                    return matched;
+            }
+            return !string.IsNullOrEmpty(typeIcon) && Find(typeIcon) ? typeIcon : "";
         }
 
         internal static List<(string icon, string name)> Catalog()
@@ -24,7 +47,7 @@ namespace KingdomLeylineConduits
                     continue;
                 entries.Add((item.IconName, item.PreviewDisplayName));
             }
-            var bySprite = BuildSpriteIdLookup();
+            var bySprite = spriteLookup ??= BuildSpriteIdLookup();
             foreach (GameCurrency currency in Enum.GetValues(typeof(GameCurrency)))
             {
                 var sprite = currency.GetIcon();

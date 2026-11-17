@@ -26,7 +26,7 @@ using UnityEngine.UI;
 
 namespace KingdomLeylineConduits.Verification
 {
-    [BepInPlugin("urakka.kingdominc.leylineconduits.verification", "Leyline Conduits Verification", "0.4.2")]
+    [BepInPlugin("urakka.kingdominc.leylineconduits.verification", "Leyline Conduits Verification", "0.4.3")]
     [BepInDependency(LeylineConduitsPlugin.Id, LeylineConduitsPlugin.Version)]
     public sealed class LeylineVerificationPlugin : BaseUnityPlugin
     {
@@ -231,14 +231,19 @@ namespace KingdomLeylineConduits.Verification
             inlet.Update(0);
             Check(nOutlet.Outputs[0].NextItem == original && !nInlet.Inputs[0].HasBuffer && !nWrong.Outputs[0].HasBuffer,
                 "Leyline moves original object only to a matching Output");
+            Check(inlet.SelectedIconId == ItemType.Get("iron_ingot").IconName
+                && outlet.SelectedIconId == ItemType.Get("iron_ingot").IconName
+                && !inlet.ManualIcon && !outlet.ManualIcon,
+                "Passing item automatically sets Input and Output icons");
             outgoing.Update(0);
             Check(sink.Inputs[0].NextItem == original && !nOutlet.Outputs[0].HasBuffer,
                 "Native output pipe delivers original item to destination");
             sink.Inputs[0].BufferedItems.Clear();
 
+            var manualChoice = ConduitIcons.Catalog().First(option => option.icon != ItemType.Get("iron_sword").IconName).icon;
             var held = Item("iron_sword");
             nInlet.Inputs[0].BufferedItems.Add(held);
-            Check(inlet.Configure(ConduitMode.Input, "Iron", ConduitIcons.Catalog().First().icon, out _)
+            Check(inlet.Configure(ConduitMode.Input, "Iron", manualChoice, out _) && inlet.ManualIcon
                 && nInlet.Inputs[0].HasBuffer && nInlet.Inputs[0].BufferedItems[0] == held,
                 "Icon change preserves waiting item");
             Check(inlet.Configure(ConduitMode.Input, "other", out _) && inlet.Channel == "other"
@@ -263,6 +268,9 @@ namespace KingdomLeylineConduits.Verification
             Connect(nSecond.Outputs[0], sink2.Inputs[0], b);
             inlet.Update(0);
             Check(nOutlet.Outputs[0].NextItem == held, "First available output receives held item");
+            Check(outlet.SelectedIconId == ItemType.Get("iron_sword").IconName && !outlet.ManualIcon
+                && inlet.SelectedIconId == manualChoice && inlet.ManualIcon,
+                "Auto Output icon tracks latest passing item while manual Input icon stays locked");
             outgoing.Update(0);
             sink.Inputs[0].BufferedItems.Clear();
             var alternate = Item("iron_sword");
@@ -270,14 +278,31 @@ namespace KingdomLeylineConduits.Verification
             inlet.Update(0);
             Check(nSecond.Outputs[0].NextItem == alternate && !nOutlet.Outputs[0].HasBuffer,
                 "Round robin advances to next available output");
+            Check(second.SelectedIconId == ItemType.Get("iron_sword").IconName && !second.ManualIcon,
+                "Second Output also adopts passing item icon automatically");
 
             var iconChoice = ConduitIcons.Catalog().First(option => option.icon == ItemType.Get("iron_ingot").IconName);
             Check(inlet.Configure(ConduitMode.Input, "Iron", iconChoice.icon, out _) && inlet.SelectedIconId == iconChoice.icon,
                 "Icon selection succeeds using Foundation catalog");
             var restored = GamePlayer.FromJson(player.ToJson());
             Check(restored.HasTech(LeylineConduit.TechId), "Full kingdom JSON retains Leyline Conduits research");
+            GamePlayer.Current = restored;
+            try
+            {
+                var restoredInlet = FoundationApi.Kingdom.Workspaces[0].Buildings
+                    .Select(bObj => bObj.Behaviour as LeylineConduit)
+                    .First(c => c != null);
+                var restoredOutlet = FoundationApi.Kingdom.Workspaces[1].Buildings
+                    .Select(bObj => bObj.Behaviour as LeylineConduit)
+                    .First(c => c != null && LeylineConduit.SameChannel(c.Channel, "iron"));
+                Check(!restoredOutlet.ManualIcon && restoredOutlet.SelectedIconId == ItemType.Get("iron_sword").IconName
+                    && restoredInlet.ManualIcon && restoredInlet.SelectedIconId == iconChoice.icon,
+                    "Save preserves auto-set item icon vs manual icon flag");
+            }
+            finally { GamePlayer.Current = player; }
             var legacy = nInlet.ToJson().AsJsonObject;
             legacy.Remove("LeylineIcon");
+            legacy.Remove("LeylineManualIcon");
             legacy["Inputs"][0].AsJsonObject["Position"] = -48;
             var upgraded = FlowElement.FromJson(legacy, a);
             Check(upgraded.Size == new Vector2Int(64, 64) && upgraded.Inputs[0].Position == -LeylineConduit.PortOffset,
