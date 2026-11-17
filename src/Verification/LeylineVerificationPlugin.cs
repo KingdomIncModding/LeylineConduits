@@ -10,6 +10,7 @@ using Assets.Behaviour.UI.TechTree;
 using Assets.Source.Flow;
 using Assets.Source.Flow.Elements;
 using Assets.Source.Items;
+using Assets.Source.Items.Type;
 using Assets.Source.Player;
 using Assets.Source.Util;
 using BepInEx;
@@ -25,7 +26,7 @@ using UnityEngine.UI;
 
 namespace KingdomLeylineConduits.Verification
 {
-    [BepInPlugin("urakka.kingdominc.leylineconduits.verification", "Leyline Conduits Verification", "0.4.1")]
+    [BepInPlugin("urakka.kingdominc.leylineconduits.verification", "Leyline Conduits Verification", "0.4.2")]
     [BepInDependency(LeylineConduitsPlugin.Id, LeylineConduitsPlugin.Version)]
     public sealed class LeylineVerificationPlugin : BaseUnityPlugin
     {
@@ -235,13 +236,25 @@ namespace KingdomLeylineConduits.Verification
                 "Native output pipe delivers original item to destination");
             sink.Inputs[0].BufferedItems.Clear();
 
-            Check(!inlet.Configure(ConduitMode.Output, "iron", out _) && inlet.Mode == ConduitMode.Input
-                && incoming.ConnectedInput == nInlet.Inputs[0],
-                "Mode switch refuses connected pipe without corrupting connection");
             var held = Item("iron_sword");
             nInlet.Inputs[0].BufferedItems.Add(held);
-            Check(!inlet.Configure(ConduitMode.Input, "other", out _) && inlet.Channel == "Iron",
-                "Buffered items cannot be retuned into another leyline");
+            Check(inlet.Configure(ConduitMode.Input, "Iron", ConduitIcons.Catalog().First().icon, out _)
+                && nInlet.Inputs[0].HasBuffer && nInlet.Inputs[0].BufferedItems[0] == held,
+                "Icon change preserves waiting item");
+            Check(inlet.Configure(ConduitMode.Input, "other", out _) && inlet.Channel == "other"
+                && !nInlet.Inputs[0].HasBuffer,
+                "Changing channel destroys waiting item cleanly");
+            Check(inlet.Configure(ConduitMode.Input, "Iron", out _) && inlet.Channel == "Iron",
+                "Restore Input channel Iron");
+
+            nInlet.Inputs[0].BufferedItems.Add(held);
+            Check(inlet.Configure(ConduitMode.Output, "iron", out _) && inlet.Mode == ConduitMode.Output
+                && !inlet.Port.HasBuffer && incoming.ConnectedInput.ConnectedPipe == null && source.Outputs[0].ConnectedPipe == null,
+                "Mode switch destroys waiting item and disconnects existing pipe cleanly");
+            Check(inlet.Configure(ConduitMode.Input, "Iron", out _) && inlet.Mode == ConduitMode.Input,
+                "Disconnected conduit switches back to Input");
+            incoming = Connect(source.Outputs[0], nInlet.Inputs[0], a);
+            nInlet.Inputs[0].BufferedItems.Add(held);
 
             var second = Place(b, ConduitMode.Output, "IRON");
             var nSecond = NativeOf(second);
@@ -350,12 +363,101 @@ namespace KingdomLeylineConduits.Verification
                         "Input and Output conduit ports line up with a native machine on the same grid row");
                     WorldFlowManager.Instance.RemoveElement(alignmentMachine);
 
+                    // Pipe-connected dropdown auto-population + postfix + editable Name field checks.
+                    var flow = GamePlayer.Current.Flows[0];
+                    var mine = new Mine { Position = new Vector2Int(-384, -64) };
+                    mine.SetupResource((ResourceItemType)ItemType.Get("iron_ore"));
+                    WorldFlowManager.Instance.CreateNewElement(mine);
+                    var pipedConduit = new LeylineConduit();
+                    var nativePiped = NativeOf(pipedConduit);
+                    nativePiped.Position = new Vector2Int(-192, -64);
+                    WorldFlowManager.Instance.CreateNewElement(nativePiped);
+                    var minePipe = new FlowPipe();
+                    minePipe.Connect(mine.Outputs[0], nativePiped.Inputs[0]);
+                    WorldFlowManager.Instance.CreateNewPipe(minePipe);
+                    Check(ConduitChannelSuggestions.FormatDisplayName("@iron_mine") == "Iron Mine",
+                        "@iron_mine token translates/formats to Iron Mine");
+                    var pipedView = nativePiped.World.GetComponent<ConduitWorld>();
+                    pipedView.OpenSettings();
+                    var pipedPopup = pipedView.Settings;
+                    Check(pipedPopup && pipedPopup.IsOpen, "Piped conduit settings popup opens");
+                    Check(pipedPopup.PresetDropdown.options.Any(o => o.text == "Iron Mine"),
+                        "Dropdown auto-populates Iron Mine from piped @iron_mine");
+                    Check(pipedPopup.ChannelField.text == "Iron Mine",
+                        "Opening unnamed piped conduit auto-fills Name with Iron Mine");
+                    pipedPopup.PostfixField.text = "_1";
+                    Check(pipedPopup.ChannelField.text == "Iron Mine _1",
+                        "Postfix _1 updates Name to Iron Mine _1");
+                    Canvas.ForceUpdateCanvases();
+                    Capture(Path.Combine(directory, "leyline-settings-v2.png"), pipedPopup);
+                    pipedPopup.ChannelField.text = "Iron Mine _1 Custom";
+                    Check(pipedPopup.PresetDropdown.value == 0,
+                        "Manual edit of Name switches dropdown back to Custom while keeping edited text");
+                    pipedPopup.Apply();
+                    Check(pipedConduit.Channel == "Iron Mine _1 Custom",
+                        "Apply saves edited channel name");
+                    pipedView.OpenSettings();
+                    pipedPopup.GetComponentsInChildren<Button>().Single(b => b.name == "SelectLeylineOutput").onClick.Invoke();
+                    pipedPopup.Apply();
+                    Check(pipedConduit.Mode == ConduitMode.Output && mine.Outputs[0].ConnectedPipe == null
+                        && !flow.Pipes.Contains(minePipe),
+                        "Switching mode in live workspace disconnects and removes existing pipe");
+                    WorldFlowManager.Instance.RemoveElement(nativePiped);
+                    WorldFlowManager.Instance.RemoveElement(mine);
+
+                    // Output mode dropdown: only alphabetical active Input channels (no piped buildings or Output-only channels).
+                    var extraInputZ = new LeylineConduit();
+                    Check(extraInputZ.Configure(ConduitMode.Input, "zeta", out _), "Configure extra Input zeta");
+                    var extraInputA = new LeylineConduit();
+                    Check(extraInputA.Configure(ConduitMode.Input, "Alpha", out _), "Configure extra Input Alpha");
+                    var extraOutputOnly = new LeylineConduit();
+                    Check(extraOutputOnly.Configure(ConduitMode.Output, "outputOnlyChannel", out _), "Configure extra Output outputOnlyChannel");
+                    var collector = new Collector { Position = new Vector2Int(-192, -192) };
+                    var pipedOutput = new LeylineConduit();
+                    Check(pipedOutput.Configure(ConduitMode.Output, "alpha", out _), "Configure pipedOutput initial");
+                    var nativeExtraZ = NativeOf(extraInputZ); nativeExtraZ.Position = new Vector2Int(-512, -192);
+                    var nativeExtraA = NativeOf(extraInputA); nativeExtraA.Position = new Vector2Int(-448, -192);
+                    var nativeExtraOut = NativeOf(extraOutputOnly); nativeExtraOut.Position = new Vector2Int(-384, -192);
+                    var nativeOut = NativeOf(pipedOutput); nativeOut.Position = new Vector2Int(-320, -192);
+                    WorldFlowManager.Instance.CreateNewElement(nativeExtraZ);
+                    WorldFlowManager.Instance.CreateNewElement(nativeExtraA);
+                    WorldFlowManager.Instance.CreateNewElement(nativeExtraOut);
+                    WorldFlowManager.Instance.CreateNewElement(collector);
+                    WorldFlowManager.Instance.CreateNewElement(nativeOut);
+                    var outPipe = new FlowPipe();
+                    outPipe.Connect(nativeOut.Outputs[0], collector.Inputs[0]);
+                    WorldFlowManager.Instance.CreateNewPipe(outPipe);
+                    var outView = nativeOut.World.GetComponent<ConduitWorld>();
+                    outView.OpenSettings();
+                    var outPopup = outView.Settings;
+                    var outPresetTexts = outPopup.PresetDropdown.options.Select(o => o.text).ToList();
+                    Check(outPresetTexts.SequenceEqual(new[] { "Custom", "Alpha", "iron", "zeta" }),
+                        "Output dropdown shows only alphabetical active Input channels: " + string.Join(", ", outPresetTexts));
+                    Check(!outPopup.PostfixField.interactable,
+                        "Postfix field is disabled in Output mode");
+                    outView.OpenSettings();
+                    WorldFlowManager.Instance.RemoveElement(nativeOut);
+                    WorldFlowManager.Instance.RemoveElement(collector);
+                    WorldFlowManager.Instance.RemoveElement(nativeExtraOut);
+                    WorldFlowManager.Instance.RemoveElement(nativeExtraA);
+                    WorldFlowManager.Instance.RemoveElement(nativeExtraZ);
+
                     ExecuteEvents.Execute(conduits[0].World.GetComponentsInChildren<Button>().Single(b => b.name == "LeylineSettingsGear").gameObject,
                         new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);
                     var view = conduits[0].World.GetComponent<ConduitWorld>();
                     Check(view.Settings && view.Settings.IsOpen && conduits[0].Editing,
                         "Gear opens settings and suspends network editing");
                     var popup = view.Settings;
+                    popup.GetComponentsInChildren<Button>().Single(b => b.name == "SelectLeylineOutput").onClick.Invoke();
+                    Canvas.ForceUpdateCanvases();
+                    var costRow = popup.transform.Find("LeylineSettingsPanel/LeylineSettingsBody/LeylineCostRow");
+                    var dirRect = (RectTransform)costRow.GetChild(0);
+                    var iconRect = (RectTransform)costRow.GetChild(1);
+                    var tailRect = (RectTransform)costRow.GetChild(2);
+                    Check(dirRect.rect.width > 120f && iconRect.anchoredPosition.x > dirRect.anchoredPosition.x + dirRect.rect.width / 2f
+                        && tailRect.anchoredPosition.x > iconRect.anchoredPosition.x,
+                        "Output cost row lays out direction, Mana icon, and tail without overlap");
+                    Capture(Path.Combine(directory, "leyline-settings-output.png"), popup);
                     popup.GetComponentsInChildren<Button>().Single(button => button.name == "SetLeylineIcon").onClick.Invoke();
                     Check(popup.PickerVisible && popup.GetComponentsInChildren<Button>().Any(button => button.name.StartsWith("LeylineIconChoice_")),
                         "Set Icon opens searchable icon grid");
@@ -402,6 +504,86 @@ namespace KingdomLeylineConduits.Verification
                 Logger.LogError("LEYLINE_RUNTIME_FAIL: " + error);
             yield return new WaitForSecondsRealtime(0.5f);
             Application.Quit();
+        }
+
+        static void Capture(string path, ConduitSettingsPopup popup)
+        {
+            Canvas.ForceUpdateCanvases();
+            var target = RenderTexture.GetTemporary(Screen.width, Screen.height, 24);
+            var previous = RenderTexture.active;
+            var texture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+            var popupRoot = popup ? (RectTransform)popup.transform : null;
+            var parent = popupRoot ? popupRoot.parent : null;
+            var rootCanvas = parent ? parent.GetComponentInParent<Canvas>()?.rootCanvas : null;
+            var popupCanvas = popup ? popup.GetComponent<Canvas>() : null;
+            var oldMode = popupCanvas ? popupCanvas.renderMode : RenderMode.ScreenSpaceOverlay;
+            var oldCamera = popupCanvas ? popupCanvas.worldCamera : null;
+            float oldDistance = popupCanvas ? popupCanvas.planeDistance : 0;
+            float oldScaleFactor = popupCanvas ? popupCanvas.scaleFactor : 1;
+            var oldAnchorMin = popupRoot ? popupRoot.anchorMin : Vector2.zero;
+            var oldAnchorMax = popupRoot ? popupRoot.anchorMax : Vector2.one;
+            var oldPivot = popupRoot ? popupRoot.pivot : Vector2.zero;
+            var oldSize = popupRoot ? popupRoot.sizeDelta : Vector2.zero;
+            var oldPosition = popupRoot ? popupRoot.anchoredPosition : Vector2.zero;
+            var oldScale = popupRoot ? popupRoot.localScale : Vector3.one;
+            var layers = popup ? popup.GetComponentsInChildren<Transform>(true)
+                .Select(t => (transform: t, layer: t.gameObject.layer)).ToArray() : new (Transform transform, int layer)[0];
+            var overlayCameraObject = new GameObject("LeylineDiagnosticOverlayCapture");
+            var overlayCamera = overlayCameraObject.AddComponent<Camera>();
+            overlayCamera.clearFlags = CameraClearFlags.Depth;
+            overlayCamera.orthographic = true;
+            overlayCamera.orthographicSize = Screen.height / 2f;
+            overlayCamera.depth = 10000;
+            overlayCamera.cullingMask = 1 << 31;
+            overlayCamera.targetTexture = target;
+            try
+            {
+                foreach (var camera in Camera.allCameras.Where(c => c != overlayCamera).OrderBy(c => c.depth))
+                {
+                    var oldTarget = camera.targetTexture;
+                    try { camera.targetTexture = target; camera.Render(); }
+                    finally { camera.targetTexture = oldTarget; }
+                }
+                if (popup && rootCanvas)
+                {
+                    foreach (var entry in layers) entry.transform.gameObject.layer = 31;
+                    float scale = rootCanvas.scaleFactor;
+                    popupRoot.SetParent(null, false);
+                    popupCanvas.renderMode = RenderMode.ScreenSpaceCamera;
+                    popupCanvas.worldCamera = overlayCamera;
+                    popupCanvas.planeDistance = 10;
+                    popupCanvas.scaleFactor = scale;
+                    Canvas.ForceUpdateCanvases();
+                    overlayCamera.Render();
+                }
+                RenderTexture.active = target;
+                texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
+                texture.Apply();
+                File.WriteAllBytes(path, ImageConversion.EncodeToPNG(texture));
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(target);
+                if (popup)
+                {
+                    popupCanvas.renderMode = oldMode;
+                    popupCanvas.worldCamera = oldCamera;
+                    popupCanvas.planeDistance = oldDistance;
+                    popupCanvas.scaleFactor = oldScaleFactor;
+                    popupRoot.SetParent(parent, false);
+                    popupRoot.anchorMin = oldAnchorMin;
+                    popupRoot.anchorMax = oldAnchorMax;
+                    popupRoot.pivot = oldPivot;
+                    popupRoot.sizeDelta = oldSize;
+                    popupRoot.anchoredPosition = oldPosition;
+                    popupRoot.localScale = oldScale;
+                }
+                foreach (var entry in layers)
+                    if (entry.transform) entry.transform.gameObject.layer = entry.layer;
+                UnityEngine.Object.DestroyImmediate(overlayCameraObject);
+                UnityEngine.Object.Destroy(texture);
+            }
         }
 
         [HarmonyPatch(typeof(SaveGame), nameof(SaveGame.Store))]

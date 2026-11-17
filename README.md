@@ -1,6 +1,6 @@
 # Leyline Conduits
 
-**Current release: 0.4.1 — for Kingdom Inc game version 1.0.14.**
+**Current release: 0.4.2 — for Kingdom Inc game version 1.0.14.**
 
 Link distant machines with small enchanted conduits. Give an Input and an Output the same leyline name to move items between them, including across workshop tabs.
 
@@ -49,7 +49,7 @@ When updating, replace the existing plugin files and avoid duplicate copies.
 
 Names ignore capitalization and leading or trailing spaces, with a maximum of 32 characters. Unnamed Inputs accept nothing. Opening settings pauses that conduit's transfers; close settings to resume.
 
-Disconnect the pipe before switching mode. Drain waiting items before changing the leyline name or mode. You can change an icon while a pipe is connected or an item is waiting. Closing settings without Apply cancels your changes.
+Switching mode disconnects any connected pipe. Changing the leyline name or mode destroys any waiting item. You can change an icon while a pipe is connected or an item is waiting. Closing settings without Apply cancels your changes.
 
 ## Saves and removal
 

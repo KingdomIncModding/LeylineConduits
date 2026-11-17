@@ -10,7 +10,7 @@ namespace KingdomLeylineConduits
     [BepInDependency("urakka.kingdominc.foundation", "0.14.5")]
     public sealed class LeylineConduitsPlugin : BaseUnityPlugin
     {
-        public const string Id = "urakka.kingdominc.leylineconduits", Version = "0.4.1";
+        public const string Id = "urakka.kingdominc.leylineconduits", Version = "0.4.2";
         FoundationModContext context;
         readonly List<IDisposable> hooks = new List<IDisposable>();
         ITechNode research;

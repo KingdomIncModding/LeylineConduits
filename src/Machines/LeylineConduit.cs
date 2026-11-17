@@ -70,28 +70,49 @@ namespace KingdomLeylineConduits
                 reason = "Use 1\u201332 characters without line breaks.";
                 return false;
             }
-            if (mode != Mode && Port.ConnectedPipe != null)
-            {
-                reason = "Disconnect the pipe before changing mode.";
-                return false;
-            }
-            if ((mode != Mode || !SameChannel(Channel, name)) && Port.HasBuffer)
-            {
-                reason = "Let the waiting item leave before retuning.";
-                return false;
-            }
             bool changeMode = mode != Mode;
+            bool changeChannel = !SameChannel(Channel, name);
+            bool clearedBuffer = false;
+            if ((changeMode || changeChannel) && Port.HasBuffer)
+            {
+                Port.ClearBuffer();
+                clearedBuffer = true;
+            }
+            if (changeMode)
+                DisconnectConnectedPipes();
             Mode = mode;
             Channel = name;
             SelectedIconId = iconId;
             nextOutput = 0;
             if (changeMode)
-            {
                 RebuildPort();
-                if (World)
-                    FoundationApi.WorkspaceVisuals.RefreshPorts(World);
-            }
+            if ((changeMode || clearedBuffer) && World)
+                FoundationApi.WorkspaceVisuals.RefreshPorts(World);
             return true;
+        }
+
+        void DisconnectConnectedPipes()
+        {
+            foreach (var port in IO)
+            {
+                var pipe = port.ConnectedPipe;
+                if (pipe == null)
+                    continue;
+                if (FoundationApi.WorkspaceAccess.IsReady && Model != null && FoundationApi.WorkspaceAccess.IsInActiveWorkspace(Model))
+                {
+                    FoundationApi.WorkspaceAccess.RemovePipe(pipe);
+                    continue;
+                }
+                if (pipe.World)
+                    FoundationApi.WorkspaceAccess.DestroyView(pipe);
+                var workspace = Model?.ParentWorkspace;
+                if (workspace != null)
+                    workspace.SetPipes(workspace.Pipes.Where(p => p != pipe));
+                if (pipe.ConnectedInput?.ConnectedPipe == pipe)
+                    pipe.ConnectedInput.SetConnectedPipe(null);
+                if (pipe.ConnectedOutput?.ConnectedPipe == pipe)
+                    pipe.ConnectedOutput.SetConnectedPipe(null);
+            }
         }
 
         internal static bool SameChannel(string a, string b)
