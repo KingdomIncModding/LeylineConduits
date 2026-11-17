@@ -1,6 +1,6 @@
 # Leyline Conduits
 
-**Current release: 0.4.3 — for Kingdom Inc game version 1.0.14.**
+**Current release: 0.4.4 — for Kingdom Inc game version 1.0.14.**
 
 Link distant machines with small enchanted conduits. Give an Input and an Output the same leyline name to move items between them, including across workshop tabs.
 
@@ -13,7 +13,7 @@ Requires **Foundation 0.14.5 or later**. Find **Leyline Conduits** under **Tech 
 - Compact 64 × 64 tiles, roughly the size of a one-cell sticker.
 - One connection per conduit, with a gear to choose **Input** or **Output** and enter a leyline name.
 - A tiny top grip lets you drag the conduit or click to pick it up. Right-click cancels placement.
-- Icons automatically update to match items passing through. Use **Set Icon** to lock a custom icon, or **Rune** to return to the default crystal seal and auto-icons.
+- Icons automatically update to match items passing through, starting from the default bronze and blue crystal seal.
 - Matching names connect conduits across all workshop tabs in the current kingdom.
 - Multiple Outputs receive an Input's items in round-robin order, skipping disconnected, occupied or incompatible destinations.
 - Each conduit holds one item. Equipment and adventurer details stay with the item.
@@ -45,11 +45,10 @@ When updating, replace the existing plugin files and avoid duplicate copies.
 2. Connect your producer's output to the conduit's green input.
 3. Place another conduit, choose **Output**, enter `iron`, and click **Apply**.
 4. Connect its blue output to your destination.
-5. Choose **Set Icon** in the gear menu to customize either conduit, then **Apply**.
 
 Names ignore capitalization and leading or trailing spaces, with a maximum of 32 characters. Unnamed Inputs accept nothing. Opening settings pauses that conduit's transfers; close settings to resume.
 
-Switching mode disconnects any connected pipe. Changing the leyline name or mode destroys any waiting item. You can change an icon while a pipe is connected or an item is waiting. Closing settings without Apply cancels your changes.
+Switching mode disconnects any connected pipe. Changing the leyline name or mode destroys any waiting item. Closing settings without Apply cancels your changes.
 
 ## Saves and removal
 

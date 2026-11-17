@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using KingdomFoundation.Api;
 using TMPro;
 using UnityEngine;
@@ -12,24 +11,17 @@ namespace KingdomLeylineConduits
 {
     public sealed class ConduitSettingsPopup : FoundationPopup
     {
-        const float Width = 368, Height = 446;
-        const int IconsPerPage = 24;
+        const float Width = 368, Height = 368;
 
         ConduitWorld owner;
         LeylineConduit conduit;
         ConduitUi ui;
         RectTransform panel;
-        RectTransform settingsBody, pickerBody, iconGrid, costRow;
+        RectTransform settingsBody, costRow;
         Button input, output;
-        Button previousPage, nextPage;
-        TMP_Text directionText, costTailText, message, pageLabel;
-        Image manaIcon, iconPreview;
-        ConduitRuneGraphic runePreview;
-        List<(string icon, string name)> iconCatalog;
+        TMP_Text directionText, costTailText, message;
+        Image manaIcon;
         readonly List<string> presetOptions = new List<string>();
-        string selectedIcon = "";
-        bool manualIcon;
-        int iconPage;
         ConduitMode selected;
         bool restoreInput;
         int openedFrame;
@@ -37,9 +29,6 @@ namespace KingdomLeylineConduits
         internal TMP_Dropdown PresetDropdown { get; private set; }
         internal TMP_InputField PostfixField { get; private set; }
         internal TMP_InputField ChannelField { get; private set; }
-        internal TMP_InputField IconSearch { get; private set; }
-        internal bool PickerVisible => pickerBody && pickerBody.gameObject.activeSelf;
-        internal int IconPage => iconPage;
         internal bool IsOpen => gameObject.activeSelf;
 
         internal void Initialize(ConduitWorld world, LeylineConduit element, TMP_FontAsset font, Transform parent)
@@ -79,7 +68,6 @@ namespace KingdomLeylineConduits
 
             settingsBody = ConduitUi.Rect(panel, "LeylineSettingsBody", 0, 0, Width, Height);
             BuildSettings(settingsBody);
-            BuildPicker();
         }
 
         void BuildSettings(RectTransform target)
@@ -103,20 +91,11 @@ namespace KingdomLeylineConduits
             ChannelField.onValueChanged.AddListener(OnChannelEdited);
             ui.Text(target, "Same name links across tabs.", 26, 256, 316, 18, 12).color = ConduitUi.Muted;
 
-            ui.Text(target, "Icon", 26, 280, 316, 22, 15);
-            iconPreview = ui.Icon(target, null, 34, 312, 32);
-            iconPreview.name = "LeylineIconPreview";
-            runePreview = ConduitUi.Rect(target, "RunePreview", 34, 312, 32, 32).gameObject.AddComponent<ConduitRuneGraphic>();
-            runePreview.color = Color.white;
-            runePreview.raycastTarget = false;
-            ui.Button(target, "Set Icon", 80, 310, 176, 36, ShowIconPicker, "Button02", 16f).name = "SetLeylineIcon";
-            ui.Button(target, "Rune", 264, 310, 78, 36, () => SelectIcon(""), "Button03", 15f).name = "ResetLeylineIcon";
-
-            message = ui.Text(target, "", 26, 354, 316, 32, 12);
+            message = ui.Text(target, "", 26, 280, 316, 32, 12);
             message.color = ConduitUi.Red;
             message.textWrappingMode = TextWrappingModes.Normal;
 
-            ui.Button(target, "Apply", 104, 392, 160, 38, Apply, "Button02", 17f).name = "ApplyLeylineSettings";
+            ui.Button(target, "Apply", 104, 316, 160, 38, Apply, "Button02", 17f).name = "ApplyLeylineSettings";
         }
 
         void BuildCostLine(RectTransform target)
@@ -145,35 +124,6 @@ namespace KingdomLeylineConduits
 
             costTailText = ui.Text(costRow, "", 0, 0, 140, 22, 13);
             costTailText.overflowMode = TextOverflowModes.Overflow;
-        }
-
-        void BuildPicker()
-        {
-            pickerBody = ConduitUi.Rect(panel, "LeylineIconPicker", 0, 0, Width, Height);
-            ui.Text(pickerBody, "Choose Icon", 26, 36, 316, 24, 17);
-            IconSearch = ui.InputField(pickerBody, "SearchLeylineIcons", 26, 68, 316, 32, "Search game icons\u2026", 80, 15f);
-            IconSearch.onValueChanged.AddListener(_ =>
-            {
-                iconPage = 0;
-                RefreshIcons();
-            });
-            pageLabel = ui.Text(pickerBody, "", 26, 105, 316, 20, 12);
-            pageLabel.color = ConduitUi.Muted;
-            iconGrid = ConduitUi.Rect(pickerBody, "LeylineIconGrid", 26, 130, 318, 224);
-            previousPage = ui.Button(pickerBody, "Prev", 26, 392, 84, 34, () =>
-            {
-                iconPage--;
-                RefreshIcons();
-            }, "Button03", 15f);
-            previousPage.name = "PreviousLeylineIcons";
-            ui.Button(pickerBody, "Back", 142, 392, 84, 34, HideIconPicker, "Button02", 15f).name = "BackFromLeylineIcons";
-            nextPage = ui.Button(pickerBody, "Next", 258, 392, 84, 34, () =>
-            {
-                iconPage++;
-                RefreshIcons();
-            }, "Button03", 15f);
-            nextPage.name = "NextLeylineIcons";
-            pickerBody.gameObject.SetActive(false);
         }
 
         void PopulatePresets(bool allowAutoFill)
@@ -292,78 +242,6 @@ namespace KingdomLeylineConduits
             ChannelField.SetTextWithoutNotify(combined);
         }
 
-        internal void ShowIconPicker()
-        {
-            if (PresetDropdown && PresetDropdown.IsExpanded)
-                PresetDropdown.Hide();
-            iconCatalog = ConduitIcons.Catalog();
-            iconPage = 0;
-            IconSearch.SetTextWithoutNotify("");
-            settingsBody.gameObject.SetActive(false);
-            pickerBody.gameObject.SetActive(true);
-            RefreshIcons();
-        }
-
-        void HideIconPicker()
-        {
-            IconSearch.DeactivateInputField();
-            if (EventSystem.current)
-                EventSystem.current.SetSelectedGameObject(null);
-            pickerBody.gameObject.SetActive(false);
-            settingsBody.gameObject.SetActive(true);
-        }
-
-        internal void SelectIcon(string id)
-        {
-            selectedIcon = id ?? "";
-            manualIcon = selectedIcon.Length > 0;
-            RefreshIconPreview();
-            if (PickerVisible)
-                HideIconPicker();
-        }
-
-        void RefreshIconPreview()
-        {
-            iconPreview.sprite = ConduitIcons.Find(selectedIcon);
-            iconPreview.enabled = iconPreview.sprite;
-            runePreview.enabled = !iconPreview.sprite;
-        }
-
-        void RefreshIcons()
-        {
-            if (iconCatalog == null)
-                return;
-            // Destroy is deferred by Unity; disable old buttons immediately so
-            // search/page changes never leave invisible clickable choices.
-            foreach (Transform child in iconGrid)
-            {
-                child.gameObject.SetActive(false);
-                Destroy(child.gameObject);
-            }
-            string query = (IconSearch.text ?? "").Trim();
-            var choices = iconCatalog.Where(option =>
-                (option.name ?? "").IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0
-                || option.icon.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-            int pages = Math.Max(1, (choices.Count + IconsPerPage - 1) / IconsPerPage);
-            iconPage = Mathf.Clamp(iconPage, 0, pages - 1);
-            pageLabel.text = choices.Count == 0
-                ? "No matching icons."
-                : "Page " + (iconPage + 1) + " / " + pages + " \u00b7 " + choices.Count + " icons";
-            previousPage.interactable = iconPage > 0;
-            nextPage.interactable = iconPage + 1 < pages;
-            int index = 0;
-            foreach (var choice in choices.Skip(iconPage * IconsPerPage).Take(IconsPerPage))
-            {
-                string id = choice.icon;
-                var button = ui.Button(iconGrid, "", (index % 6) * 54, (index / 6) * 54, 48, 48, () => SelectIcon(id));
-                button.name = "LeylineIconChoice_" + id;
-                ui.Icon(button.transform, ConduitIcons.Find(id), 8, 8, 32);
-                ui.Select(button, selectedIcon == id);
-                button.gameObject.AddComponent<FoundationTooltipSource>().SetTooltip(choice.name ?? id, "Use this conduit icon.");
-                index++;
-            }
-        }
-
         void SelectMode(ConduitMode mode, bool allowAutoFill = false)
         {
             selected = mode;
@@ -398,10 +276,6 @@ namespace KingdomLeylineConduits
             PostfixField.SetTextWithoutNotify("");
             SelectMode(conduit.Mode, allowAutoFill: true);
             message.text = "";
-            selectedIcon = conduit.SelectedIconId;
-            manualIcon = conduit.ManualIcon;
-            RefreshIconPreview();
-            HideIconPicker();
             conduit.Editing = true;
             Show(true);
             transform.SetAsLastSibling();
@@ -412,7 +286,7 @@ namespace KingdomLeylineConduits
 
         internal void Apply()
         {
-            if (!conduit.Configure(selected, ChannelField.text, selectedIcon, manualIcon, out var reason))
+            if (!conduit.Configure(selected, ChannelField.text, conduit.SelectedIconId, conduit.ManualIcon, out var reason))
             {
                 message.text = reason;
                 return;
@@ -433,8 +307,6 @@ namespace KingdomLeylineConduits
             {
                 if (PresetDropdown && PresetDropdown.IsExpanded)
                     PresetDropdown.Hide();
-                else if (PickerVisible)
-                    HideIconPicker();
                 else
                     ClosePopup();
                 return;

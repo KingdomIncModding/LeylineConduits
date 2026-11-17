@@ -26,7 +26,7 @@ using UnityEngine.UI;
 
 namespace KingdomLeylineConduits.Verification
 {
-    [BepInPlugin("urakka.kingdominc.leylineconduits.verification", "Leyline Conduits Verification", "0.4.3")]
+    [BepInPlugin("urakka.kingdominc.leylineconduits.verification", "Leyline Conduits Verification", "0.4.4")]
     [BepInDependency(LeylineConduitsPlugin.Id, LeylineConduitsPlugin.Version)]
     public sealed class LeylineVerificationPlugin : BaseUnityPlugin
     {
@@ -483,17 +483,17 @@ namespace KingdomLeylineConduits.Verification
                         && tailRect.anchoredPosition.x > iconRect.anchoredPosition.x,
                         "Output cost row lays out direction, Mana icon, and tail without overlap");
                     Capture(Path.Combine(directory, "leyline-settings-output.png"), popup);
-                    popup.GetComponentsInChildren<Button>().Single(button => button.name == "SetLeylineIcon").onClick.Invoke();
-                    Check(popup.PickerVisible && popup.GetComponentsInChildren<Button>().Any(button => button.name.StartsWith("LeylineIconChoice_")),
-                        "Set Icon opens searchable icon grid");
-                    popup.IconSearch.text = ItemType.Get("iron_ingot").IconName;
-                    var choice = popup.GetComponentsInChildren<Button>().Single(button => button.name == "LeylineIconChoice_" + ItemType.Get("iron_ingot").IconName);
-                    choice.onClick.Invoke();
+                    Check(!popup.GetComponentsInChildren<Button>(true).Any(button => button.name == "SetLeylineIcon" || button.name == "ResetLeylineIcon"),
+                        "Manual icon controls removed from settings popup");
+                    var bg = FoundationApi.WorkspaceVisuals.Background((WorldFlowElement)conduits[0].World);
+                    var bgTooltip = bg ? bg.GetComponent<Behaviour.UI.Tooltip.TooltipSource>() : null;
+                    Check(bgTooltip != null && (bgTooltip.GetBodyText() ?? "").IndexOf("Top grip: move.", StringComparison.OrdinalIgnoreCase) < 0,
+                        "Tooltip omits manual grip/gear hint line");
                     popup.ChannelField.text = "moonstone";
                     popup.GetComponentsInChildren<Button>().Single(b => b.name == "SelectLeylineOutput").onClick.Invoke();
                     popup.Apply();
                     Check(conduits[0].Mode == ConduitMode.Output && conduits[0].Channel == "moonstone" && !view.Settings.IsOpen && !conduits[0].Editing,
-                        "Apply changes role, channel and icon and resumes network updates");
+                        "Apply changes role and channel and resumes network updates");
                     Check(conduits[0].World.GetComponentsInChildren<WorldFlowIO>().Length == 1 && conduits[0].Port.IsOutput,
                         "Mode change rebuilds a single visible output port");
 

@@ -129,7 +129,7 @@ namespace KingdomLeylineConduits
             {
                 tooltip.SetTooltip("Leyline Conduit \u00b7 " + conduit.Mode,
                     (conduit.Channel.Length == 0 ? "Unbound" : conduit.Channel) + "\n" + conduit.Status + "\n"
-                    + ConduitCosts.TransferMana + " Mana per item\nTop grip: move. Gear: mode, leyline name and icon.");
+                    + ConduitCosts.TransferMana + " Mana per item");
             }
         }
 
