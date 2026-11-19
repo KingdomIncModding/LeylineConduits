@@ -1,5 +1,7 @@
 # Leyline Conduits
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/S6V62AX30M)
+
 **Current release: 0.4.4 — for Kingdom Inc game version 1.0.14.**
 
 Link distant machines with small enchanted conduits. Give an Input and an Output the same leyline name to move items between them, including across workshop tabs.
@@ -71,3 +73,8 @@ Created by Urakka. The promotional cover uses AI-generated artwork. Game assets 
 
 [Source code](https://github.com/KingdomIncModding/LeylineConduits)
 
+## Support
+
+If you enjoy these Kingdom Inc mods and tools, consider supporting development on Ko-fi!
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/S6V62AX30M)
